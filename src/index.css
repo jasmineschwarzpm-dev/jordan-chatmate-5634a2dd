@@ -110,3 +110,17 @@ All colors MUST be HSL.
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 }
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm;
+  }
+  
+  .warm-shadow {
+    box-shadow: 0 4px 20px -2px hsl(var(--primary) / 0.1), 0 2px 8px -2px hsl(var(--primary) / 0.05);
+  }
+  
+  .soft-glow {
+    box-shadow: 0 0 30px -5px hsl(var(--primary) / 0.15);
+  }
+}

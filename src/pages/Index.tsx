@@ -126,29 +126,34 @@ export default function App() {
   function endSession() { setEnded(true); }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2 animate-fade-in">
-          <h1 className="text-3xl font-light tracking-tight text-foreground">Jordan</h1>
-          <p className="text-sm text-muted-foreground">Your conversation practice partner</p>
+        <div className="text-center space-y-3 pt-8 animate-fade-in">
+          <div className="inline-block p-3 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 mb-2">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-light">
+              J
+            </div>
+          </div>
+          <h1 className="text-4xl font-light tracking-tight text-foreground">Jordan</h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">Your warm, patient space to practice everyday conversations</p>
         </div>
 
         {/* Setup Card */}
         {history.length === 0 && !ended && (
-          <Card className="border-border/50 shadow-sm animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium">Get Started</CardTitle>
-              <CardDescription className="text-sm">
+          <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 animate-fade-in">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-xl font-medium">Let's get started</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
                 Welcome! Jordan helps you practice everyday conversations in a low-pressure space. Remember, this is just for practice—not therapy or advice. If you're in the US and need support, call or text 988.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Scene</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Scene</Label>
                   <Select value={setup.scene} onValueChange={(v) => setSetup(s => ({ ...s, scene: v as Scene }))}>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="bg-background/50 border-border/50 h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -157,9 +162,9 @@ export default function App() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Jordan's gender</Label>
+                  <Label className="text-sm font-medium text-muted-foreground">Jordan's pronouns</Label>
                   <Select value={setup.interlocutor} onValueChange={(v) => setSetup(s => ({ ...s, interlocutor: v as any }))}>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="bg-background/50 border-border/50 h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -194,7 +199,8 @@ export default function App() {
                 <Button 
                   disabled={!canStart} 
                   onClick={() => setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }])}
-                  className="ml-auto"
+                  className="ml-auto shadow-md hover:shadow-lg transition-shadow"
+                  size="lg"
                 >
                   Start Conversation
                 </Button>
@@ -204,21 +210,29 @@ export default function App() {
         )}
 
         {/* Chat Transcript */}
-        <Card className="border-border/50 shadow-sm min-h-[400px]">
-          <CardContent className="p-6 space-y-4">
+        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 min-h-[450px]">
+          <CardContent className="p-6 md:p-8 space-y-5">
+            {history.length === 0 && !ended && (
+              <div className="flex items-center justify-center h-[350px] text-muted-foreground/50 text-sm">
+                Your conversation will appear here...
+              </div>
+            )}
             {history.map((t, i) => (
               <div key={i} className={`flex ${t.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
-                <div className="max-w-[80%] space-y-1">
-                  <div className={`px-4 py-3 rounded-2xl ${
+                <div className="max-w-[85%] space-y-2">
+                  <div className={`px-5 py-3.5 rounded-3xl transition-all ${
                     t.role === "user" 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-card border border-border"
+                      ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
+                      : "bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm"
                   }`}>
-                    {t.content}
+                    <p className="leading-relaxed">{t.content}</p>
                   </div>
                   {t.coachTip && (
-                    <div className="text-xs text-muted-foreground px-2 italic">
-                      💡 Coach: {t.coachTip}
+                    <div className="flex items-start gap-2 px-3 py-2 rounded-2xl bg-accent/20 border border-accent/30">
+                      <span className="text-base">💡</span>
+                      <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+                        <span className="font-medium text-foreground/80">Coach:</span> {t.coachTip}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -226,8 +240,11 @@ export default function App() {
             ))}
             {busy && (
               <div className="flex justify-start animate-fade-in">
-                <div className="bg-card border border-border px-4 py-3 rounded-2xl text-muted-foreground italic">
-                  Jordan is typing...
+                <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm px-5 py-3.5 rounded-3xl">
+                  <span className="text-muted-foreground italic flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                    Jordan is typing...
+                  </span>
                 </div>
               </div>
             )}
@@ -240,16 +257,16 @@ export default function App() {
             <CardContent className="p-4">
               <div className="flex gap-2">
                 <Input 
-                  className="flex-1" 
+                  className="flex-1 h-11 bg-background/50 border-border/50" 
                   placeholder="Type your message..." 
                   value={input} 
                   onChange={e => setInput(e.target.value)} 
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(); }}
                   disabled={busy}
                 />
-                <Button onClick={send} disabled={busy || !input.trim()}>Send</Button>
-                <Button variant="outline" onClick={endSession} disabled={history.length === 0}>End</Button>
-                <Button variant="ghost" onClick={reset}>Reset</Button>
+                <Button onClick={send} disabled={busy || !input.trim()} size="lg" className="shadow-md">Send</Button>
+                <Button variant="outline" onClick={endSession} disabled={history.length === 0} size="lg">End</Button>
+                <Button variant="ghost" onClick={reset} size="lg">Reset</Button>
               </div>
             </CardContent>
           </Card>
@@ -257,27 +274,39 @@ export default function App() {
 
         {/* Summary */}
         {ended && (
-          <Card className="border-border/50 shadow-sm animate-fade-in">
+          <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 animate-fade-in">
             <CardHeader>
-              <CardTitle className="text-lg font-medium">Session Summary</CardTitle>
+              <CardTitle className="text-xl font-medium">Session Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium text-muted-foreground">Practiced:</span> {summary.practiced.join(", ") || "opener, small talk, exit"}</p>
-                <p><span className="font-medium text-muted-foreground">Went well:</span> {summary.wentWell.join("; ") || "kept it polite and on-topic"}</p>
-                <p><span className="font-medium text-muted-foreground">Improve next:</span> {summary.nextStep || "add an open question by turn 3"}</p>
-                <p><span className="font-medium text-muted-foreground">Sample line:</span> "{summary.sampleLine || getSampleLine()}"</p>
+            <CardContent className="space-y-4">
+              <div className="space-y-3 text-sm">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/30">
+                  <p className="text-muted-foreground mb-1">Practiced</p>
+                  <p className="font-medium">{summary.practiced.join(", ") || "opener, small talk, exit"}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-accent/10 border border-accent/30">
+                  <p className="text-muted-foreground mb-1">Went well</p>
+                  <p className="font-medium">{summary.wentWell.join("; ") || "kept it polite and on-topic"}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
+                  <p className="text-muted-foreground mb-1">Improve next</p>
+                  <p className="font-medium">{summary.nextStep || "add an open question by turn 3"}</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-card border border-border/50">
+                  <p className="text-muted-foreground mb-1">Sample line to try</p>
+                  <p className="font-medium italic">"{summary.sampleLine || getSampleLine()}"</p>
+                </div>
               </div>
-              <Button onClick={reset} variant="outline" className="mt-4">Try Again</Button>
+              <Button onClick={reset} variant="outline" className="mt-4" size="lg">Try Again</Button>
             </CardContent>
           </Card>
         )}
 
         {/* Utilities */}
         {history.length > 0 && (
-          <div className="flex justify-center">
-            <Button variant="ghost" size="sm" onClick={() => copyTranscript(history)}>
-              📋 Copy transcript
+          <div className="flex justify-center pb-8">
+            <Button variant="ghost" size="sm" onClick={() => copyTranscript(history)} className="text-muted-foreground hover:text-foreground">
+              <span className="mr-2">📋</span> Copy transcript
             </Button>
           </div>
         )}
