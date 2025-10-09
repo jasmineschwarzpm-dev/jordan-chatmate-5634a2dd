@@ -26,8 +26,9 @@ serve(async (req) => {
         model: opts?.model || "google/gemini-2.5-flash",
         messages,
         temperature: opts?.temperature || 0.7,
-        max_tokens: opts?.max_tokens || 100,
+        max_tokens: opts?.max_tokens || 500,
       }),
+      signal: AbortSignal.timeout(25000), // 25 second timeout
     });
 
     if (!response.ok) {
