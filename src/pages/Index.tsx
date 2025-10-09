@@ -14,7 +14,7 @@ type Adapter = "lovable"|"openai"|"mock";
 export default function App() {
   // Setup state
   const [setup, setSetup] = useState<Setup>({ scene: DEFAULTS.scene, interlocutor: "neutral", ageConfirmed: false });
-  const [adapter, setAdapter] = useState<Adapter>("lovable");
+  const adapter: Adapter = "lovable"; // Fixed to Lovable
 
   // Conversation state
   const [history, setHistory] = useState<Turn[]>([]);
@@ -106,15 +106,8 @@ export default function App() {
               <input className="w-full border rounded p-2" placeholder="e.g., 80550" value={setup.zip||""} onChange={e=>setSetup(s=>({...s, zip: e.target.value}))}/>
             </label>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-            <label className="block">Adapter
-              <select className="w-full border rounded p-2" value={adapter} onChange={e=>setAdapter(e.target.value as Adapter)}>
-                <option value="lovable">Lovable</option>
-                <option value="openai">OpenAI</option>
-                <option value="mock">Mock</option>
-              </select>
-            </label>
-            <label className="inline-flex items-center space-x-2 mt-2">
+          <div className="flex gap-3 items-center">
+            <label className="inline-flex items-center space-x-2">
               <input type="checkbox" checked={setup.ageConfirmed} onChange={e=>setSetup(s=>({...s, ageConfirmed: e.target.checked}))}/>
               <span>I confirm I'm 18+ and agree to no‑PII testing.</span>
             </label>
