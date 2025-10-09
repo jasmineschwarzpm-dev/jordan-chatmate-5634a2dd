@@ -43,18 +43,33 @@ export default function App() {
     if (main.kind === "CRISIS") {
       const banner = await crisisBanner(setup.zip);
       const coachTip = "I'm just for everyday small talk practice. Please reach out to 988 if you're in crisis.";
-      setHistory(h => [...h, { role: "user", content: userText }, { role: "assistant", content: `I'm here only to practice everyday conversation. ${banner} Would you like to talk about books or coffee?`, coachTip }]);
+      setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: `I'm here only to practice everyday conversation. ${banner} Would you like to talk about books or coffee?` }]);
       setBusy(false);
       setCooldown(true);
       return;
     }
 
-    // 3) Build messages for LLM
+    // 3) Determine coach tip BEFORE calling LLM (attach to user message)
+    let coachTip: string | undefined;
+    if (!cooldown) {
+      if (main.kind === "PII") {
+        coachTip = `Your message contained personal contact info (${main.reason}). Avoid sharing emails, phone numbers, or addresses with strangers. Keep details general.`;
+      } else if (main.kind === "CONTROVERSIAL") {
+        const topic = triggers.find(t => t.kind === "CONTROVERSIAL")?.reason || "topic";
+        coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
+      } else if (shouldStallNudge(history)) {
+        coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
+      } else if (tooShortOrLong(userText)) {
+        coachTip = "Keep it brief (5-20 words) and add a question to move things along.";
+      }
+    }
+
+    // 4) Build messages for LLM
     const sys = buildSystemPrompt(setup.scene, setup.interlocutor);
     const chatHistory = [...history, { role: "user" as const, content: userText }].map(t => ({ role: t.role, content: t.content }));
     const messages: ChatMessage[] = makeMessages(sys, chatHistory);
 
-    // 4) Call adapter
+    // 5) Call adapter
     let reply = "";
     try {
       if (adapter === "lovable") reply = await lovableChat(messages, chatOpts({ useAdapter: "lovable", scene: setup.scene, interlocutor: setup.interlocutor } as any));
@@ -64,16 +79,8 @@ export default function App() {
       reply = "(Generator unavailable) Let's keep it simple—what's one thing you've been reading or watching lately?";
     }
 
-    // 5) Optional coach tip (PII/controversial or momentum stall)
-    let coachTip: string | undefined;
-    if (!cooldown) {
-      if (main.kind === "PII" || main.kind === "CONTROVERSIAL") coachTip = coachMessageFor(main.kind) || undefined;
-      else if (shouldStallNudge(history)) coachTip = coachMessageFor("COACHING") || undefined;
-      else if (tooShortOrLong(userText)) coachTip = "Keep it brief and add a question to move things along.";
-    }
-
-    // 6) Commit
-    setHistory(h => [...h, { role: "user", content: userText }, { role: "assistant", content: reply, coachTip }]);
+    // 6) Commit (coach tip attached to user message, appears before Jordan's reply)
+    setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: reply }]);
     setBusy(false);
     setCooldown(!!coachTip);
   }
