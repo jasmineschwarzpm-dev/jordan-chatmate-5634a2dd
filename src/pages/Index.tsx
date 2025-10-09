@@ -4,6 +4,12 @@ import { detectTriggers, prioritize, coachMessageFor, crisisBanner } from "./gua
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -120,85 +126,161 @@ export default function App() {
   function endSession() { setEnded(true); }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4 text-sm">
-      <h1 className="text-xl font-semibold">SkillBuilder — Jordan (Stage‑1)</h1>
-
-      {/* Setup */}
-      {history.length === 0 && !ended && (
-        <div className="border rounded p-3 space-y-3">
-          <p><strong>For testers (18+):</strong> Jordan is a conversation practice partner, not a therapist or advisor. No PII. US: crisis support at 988.</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <label className="block">Scene
-              <select className="w-full border rounded p-2" value={setup.scene} onChange={e=>setSetup(s=>({...s, scene: e.target.value as Scene}))}>
-                {SCENES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className="block">Jordan's gender
-              <select className="w-full border rounded p-2" value={setup.interlocutor} onChange={e=>setSetup(s=>({...s, interlocutor: e.target.value as any}))}>
-                <option value="neutral">neutral</option>
-                <option value="she">she/her</option>
-                <option value="he">he/him</option>
-                <option value="they">they/them</option>
-              </select>
-            </label>
-            <label className="block">ZIP (optional)
-              <input className="w-full border rounded p-2" placeholder="e.g., 80550" value={setup.zip||""} onChange={e=>setSetup(s=>({...s, zip: e.target.value}))}/>
-            </label>
-          </div>
-          <div className="flex gap-3 items-center">
-            <label className="inline-flex items-center space-x-2">
-              <input type="checkbox" checked={setup.ageConfirmed} onChange={e=>setSetup(s=>({...s, ageConfirmed: e.target.checked}))}/>
-              <span>I confirm I'm 18+ and agree to no‑PII testing.</span>
-            </label>
-            <button disabled={!canStart} className="border rounded px-3 py-2 disabled:opacity-50" onClick={()=>setHistory(h=>[...h, { role: "assistant", content: openingLine(setup.scene) }])}>Start</button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2 animate-fade-in">
+          <h1 className="text-3xl font-light tracking-tight text-foreground">Jordan</h1>
+          <p className="text-sm text-muted-foreground">Your conversation practice partner</p>
         </div>
-      )}
 
-      {/* Transcript */}
-      <div className="border rounded p-3 space-y-3 min-h-[200px]">
-        {history.map((t, i) => (
-          <div key={i} className={t.role === "user" ? "text-right" : "text-left"}>
-            <div className={"inline-block px-3 py-2 rounded " + (t.role === "user" ? "bg-blue-50" : "bg-gray-50")}>{t.content}</div>
-            {t.coachTip && (<div className="text-xs text-gray-600 mt-1">[Coach: {t.coachTip}]</div>)}
-          </div>
-        ))}
-        {busy && (
-          <div className="text-left">
-            <div className="inline-block px-3 py-2 rounded bg-gray-50 text-gray-500 italic">Jordan is typing...</div>
+        {/* Setup Card */}
+        {history.length === 0 && !ended && (
+          <Card className="border-border/50 shadow-sm animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">Get Started</CardTitle>
+              <CardDescription className="text-sm">
+                For testers (18+): Jordan is a conversation practice partner, not a therapist or advisor. No PII. US: crisis support at 988.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Scene</Label>
+                  <Select value={setup.scene} onValueChange={(v) => setSetup(s => ({ ...s, scene: v as Scene }))}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SCENES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Jordan's gender</Label>
+                  <Select value={setup.interlocutor} onValueChange={(v) => setSetup(s => ({ ...s, interlocutor: v as any }))}>
+                    <SelectTrigger className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="neutral">neutral</SelectItem>
+                      <SelectItem value="she">she/her</SelectItem>
+                      <SelectItem value="he">he/him</SelectItem>
+                      <SelectItem value="they">they/them</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">ZIP (optional)</Label>
+                  <Input 
+                    className="bg-background" 
+                    placeholder="e.g., 80550" 
+                    value={setup.zip || ""} 
+                    onChange={e => setSetup(s => ({ ...s, zip: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center pt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="age-confirm" 
+                    checked={setup.ageConfirmed} 
+                    onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
+                  />
+                  <Label htmlFor="age-confirm" className="text-sm font-normal cursor-pointer">
+                    I confirm I'm 18+ and agree to no‑PII testing.
+                  </Label>
+                </div>
+                <Button 
+                  disabled={!canStart} 
+                  onClick={() => setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }])}
+                  className="ml-auto"
+                >
+                  Start Conversation
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Chat Transcript */}
+        <Card className="border-border/50 shadow-sm min-h-[400px]">
+          <CardContent className="p-6 space-y-4">
+            {history.map((t, i) => (
+              <div key={i} className={`flex ${t.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
+                <div className="max-w-[80%] space-y-1">
+                  <div className={`px-4 py-3 rounded-2xl ${
+                    t.role === "user" 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-card border border-border"
+                  }`}>
+                    {t.content}
+                  </div>
+                  {t.coachTip && (
+                    <div className="text-xs text-muted-foreground px-2 italic">
+                      💡 Coach: {t.coachTip}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {busy && (
+              <div className="flex justify-start animate-fade-in">
+                <div className="bg-card border border-border px-4 py-3 rounded-2xl text-muted-foreground italic">
+                  Jordan is typing...
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Input Area */}
+        {!ended && history.length > 0 && (
+          <Card className="border-border/50 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex gap-2">
+                <Input 
+                  className="flex-1" 
+                  placeholder="Type your message..." 
+                  value={input} 
+                  onChange={e => setInput(e.target.value)} 
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(); }}
+                  disabled={busy}
+                />
+                <Button onClick={send} disabled={busy || !input.trim()}>Send</Button>
+                <Button variant="outline" onClick={endSession} disabled={history.length === 0}>End</Button>
+                <Button variant="ghost" onClick={reset}>Reset</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary */}
+        {ended && (
+          <Card className="border-border/50 shadow-sm animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium">Session Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <p><span className="font-medium text-muted-foreground">Practiced:</span> {summary.practiced.join(", ") || "opener, small talk, exit"}</p>
+                <p><span className="font-medium text-muted-foreground">Went well:</span> {summary.wentWell.join("; ") || "kept it polite and on-topic"}</p>
+                <p><span className="font-medium text-muted-foreground">Improve next:</span> {summary.nextStep || "add an open question by turn 3"}</p>
+                <p><span className="font-medium text-muted-foreground">Sample line:</span> "{summary.sampleLine || getSampleLine()}"</p>
+              </div>
+              <Button onClick={reset} variant="outline" className="mt-4">Try Again</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Utilities */}
+        {history.length > 0 && (
+          <div className="flex justify-center">
+            <Button variant="ghost" size="sm" onClick={() => copyTranscript(history)}>
+              📋 Copy transcript
+            </Button>
           </div>
         )}
-      </div>
-
-      {/* Input */}
-      {!ended && (
-        <div className="flex gap-2">
-          <input className="flex-1 border rounded p-2" placeholder="Your message" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{ if (e.key === "Enter") send(); }}/>
-          <button className="border rounded px-3" onClick={send} disabled={busy || !input.trim()}>Send</button>
-          <button className="border rounded px-3" onClick={endSession} disabled={history.length===0}>End</button>
-          <button className="border rounded px-3" onClick={reset}>Reset</button>
-        </div>
-      )}
-
-      {/* Summary */}
-      {ended && (
-        <div className="border rounded p-3 space-y-2">
-          <h2 className="font-semibold">Session Summary</h2>
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            <li><strong>Practiced:</strong> {summary.practiced.join(", ") || "opener, small talk, exit"}</li>
-            <li><strong>Went well:</strong> {summary.wentWell.join("; ") || "kept it polite and on-topic"}</li>
-            <li><strong>Improve next:</strong> {summary.nextStep || "add an open question by turn 3"}</li>
-            <li><strong>Sample line:</strong> "{summary.sampleLine || getSampleLine()}"</li>
-          </ul>
-          <div className="flex gap-2">
-            <button className="border rounded px-3" onClick={reset}>Try Again</button>
-          </div>
-        </div>
-      )}
-
-      {/* Utilities */}
-      <div className="flex gap-2">
-        <button className="border rounded px-3" onClick={()=>copyTranscript(history)}>Copy transcript</button>
       </div>
     </div>
   );
