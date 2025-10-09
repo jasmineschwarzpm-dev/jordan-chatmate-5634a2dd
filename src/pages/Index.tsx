@@ -59,8 +59,13 @@ export default function App() {
         coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
       } else if (shouldStallNudge(history)) {
         coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
-      } else if (tooShortOrLong(userText)) {
-        coachTip = "Keep it brief (5-20 words) and add a question to move things along.";
+      } else {
+        const wordCount = userText.trim().split(/\s+/).length;
+        if (wordCount < 5) {
+          coachTip = "Your message was very brief. Try elaborating a bit and asking a question to keep the conversation going.";
+        } else if (wordCount > 30) {
+          coachTip = "That's a bit long for casual small talk. Keep it concise (5-20 words) and include a question.";
+        }
       }
     }
 
