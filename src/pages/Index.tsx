@@ -61,10 +61,13 @@ export default function App() {
         coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
       } else {
         const wordCount = userText.trim().split(/\s+/).length;
-        if (wordCount < 5) {
+        const hasQuestion = /\?/.test(userText);
+        
+        // Only warn about length if it's problematic for conversation flow
+        if (wordCount < 5 && !hasQuestion) {
           coachTip = "Your message was very brief. Try elaborating a bit and asking a question to keep the conversation going.";
-        } else if (wordCount > 30) {
-          coachTip = "That's a bit long for casual small talk. Keep it concise (5-20 words) and include a question.";
+        } else if (wordCount > 40 && !hasQuestion) {
+          coachTip = "That's quite long without a question. In small talk, keep it concise and include a question to invite response.";
         }
       }
     }
