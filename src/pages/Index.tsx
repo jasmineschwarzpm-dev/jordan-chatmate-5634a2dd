@@ -140,7 +140,7 @@ export default function App() {
             <CardHeader>
               <CardTitle className="text-lg font-medium">Get Started</CardTitle>
               <CardDescription className="text-sm">
-                For testers (18+): Jordan is a conversation practice partner, not a therapist or advisor. No PII. US: crisis support at 988.
+                Welcome! Jordan helps you practice everyday conversations in a low-pressure space. Remember, this is just for practice—not therapy or advice. If you're in the US and need support, call or text 988.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -188,7 +188,7 @@ export default function App() {
                     onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
                   />
                   <Label htmlFor="age-confirm" className="text-sm font-normal cursor-pointer">
-                    I confirm I'm 18+ and agree to no‑PII testing.
+                    I'm 18 or older and ready to practice
                   </Label>
                 </div>
                 <Button 
