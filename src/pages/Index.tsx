@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { DEFAULTS, SCENES, type Scene } from "./constants";
 import { detectTriggers, prioritize, coachMessageFor, crisisBanner } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
@@ -17,15 +17,31 @@ export default function App() {
   const adapter: Adapter = "lovable"; // Fixed to Lovable
 
   // Conversation state
-  const [history, setHistory] = useState<Turn[]>([]);
+  const [history, setHistory] = useState<Turn[]>(() => {
+    const saved = localStorage.getItem("jordan-conversation");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState("");
   const [cooldown, setCooldown] = useState(false);
   const [ended, setEnded] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Persist conversation to localStorage
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem("jordan-conversation", JSON.stringify(history));
+    }
+  }, [history]);
+
   const summary = useMemo(() => makeSummary(history), [history]);
 
-  function reset() { setHistory([]); setInput(""); setEnded(false); setCooldown(false); }
+  function reset() { 
+    setHistory([]); 
+    setInput(""); 
+    setEnded(false); 
+    setCooldown(false); 
+    localStorage.removeItem("jordan-conversation");
+  }
 
   const canStart = setup.ageConfirmed && !!setup.scene && !!setup.interlocutor;
 
