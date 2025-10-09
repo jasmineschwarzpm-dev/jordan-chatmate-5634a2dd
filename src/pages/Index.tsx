@@ -3,6 +3,7 @@ import { DEFAULTS, SCENES, type Scene } from "./constants";
 import { detectTriggers, prioritize, coachMessageFor, crisisBanner } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
+import { useToast } from "@/hooks/use-toast";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -12,6 +13,8 @@ type Adapter = "lovable"|"openai"|"mock";
 
 // --- Component ---
 export default function App() {
+  const { toast } = useToast();
+  
   // Setup state
   const [setup, setSetup] = useState<Setup>({ scene: DEFAULTS.scene, interlocutor: "neutral", ageConfirmed: false });
   const adapter: Adapter = "lovable"; // Fixed to Lovable
@@ -100,6 +103,11 @@ export default function App() {
       else if (adapter === "openai") reply = await openaiChat(messages, chatOpts({ useAdapter: "openai", scene: setup.scene, interlocutor: setup.interlocutor } as any));
       else reply = await mockChat(messages);
     } catch (e:any) {
+      toast({
+        title: "Connection issue",
+        description: "Jordan is having trouble responding. Please try again.",
+        variant: "destructive",
+      });
       reply = "(Generator unavailable) Let's keep it simple—what's one thing you've been reading or watching lately?";
     }
 
@@ -155,6 +163,11 @@ export default function App() {
             {t.coachTip && (<div className="text-xs text-gray-600 mt-1">[Coach: {t.coachTip}]</div>)}
           </div>
         ))}
+        {busy && (
+          <div className="text-left">
+            <div className="inline-block px-3 py-2 rounded bg-gray-50 text-gray-500 italic">Jordan is typing...</div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
