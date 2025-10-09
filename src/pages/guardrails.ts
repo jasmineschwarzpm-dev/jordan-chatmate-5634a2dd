@@ -1,56 +1,63 @@
-type TriggerKind = "CRISIS" | "PII" | "CONTROVERSIAL" | "COACHING" | "NONE";
+import {
+  CRISIS_KEYWORDS, CONTROVERSIAL_KEYWORDS,
+  EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE,
+  SEVERITY_ORDER, type Severity
+} from "./constants";
 
-interface Trigger {
-  kind: TriggerKind;
-  confidence: number;
-}
-
-const CRISIS_PATTERNS = /\b(suicide|kill myself|end it all|self-harm|hurt myself|die|ending my life)\b/i;
-const PII_PATTERNS = /\b(\d{3}[-.]?\d{2}[-.]?\d{4}|\d{3}[-.]?\d{3}[-.]?\d{4}|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}|\d{5}(-\d{4})?)\b/i;
-const CONTROVERSIAL_PATTERNS = /\b(politics|religion|trump|biden|abortion|gun control|immigration)\b/i;
+export type Trigger = { kind: Severity; reason: string };
 
 export function detectTriggers(text: string): Trigger[] {
-  const triggers: Trigger[] = [];
-  
-  if (CRISIS_PATTERNS.test(text)) {
-    triggers.push({ kind: "CRISIS", confidence: 1.0 });
+  const t = text.toLowerCase();
+  const hits: Trigger[] = [];
+  // Crisis
+  if (CRISIS_KEYWORDS.some(k => t.includes(k))) hits.push({ kind: "CRISIS", reason: "crisis" });
+  // PII
+  if (EMAIL_RE.test(text) || PHONE_RE.test(text) || SSN_RE.test(text) || ADDRESS_RE.test(text)) {
+    hits.push({ kind: "PII", reason: "pii" });
   }
-  if (PII_PATTERNS.test(text)) {
-    triggers.push({ kind: "PII", confidence: 0.9 });
-  }
-  if (CONTROVERSIAL_PATTERNS.test(text)) {
-    triggers.push({ kind: "CONTROVERSIAL", confidence: 0.8 });
-  }
-  
-  if (triggers.length === 0) {
-    triggers.push({ kind: "NONE", confidence: 1.0 });
-  }
-  
-  return triggers;
+  // Controversial
+  if (CONTROVERSIAL_KEYWORDS.some(k => t.includes(k))) hits.push({ kind: "CONTROVERSIAL", reason: "controversial" });
+  return hits.length ? hits : [{ kind: "NONE", reason: "none" }];
 }
 
 export function prioritize(triggers: Trigger[]): Trigger {
-  const order: TriggerKind[] = ["CRISIS", "PII", "CONTROVERSIAL", "COACHING", "NONE"];
-  for (const kind of order) {
-    const found = triggers.find(t => t.kind === kind);
-    if (found) return found;
+  if (!triggers.length) return { kind: "NONE", reason: "none" };
+  let best = triggers[0];
+  for (const trig of triggers) {
+    if (SEVERITY_ORDER.indexOf(trig.kind) < SEVERITY_ORDER.indexOf(best.kind)) best = trig;
   }
-  return { kind: "NONE", confidence: 1.0 };
+  return best;
 }
 
-export function coachMessageFor(kind: TriggerKind): string | null {
+export function coachMessageFor(kind: Severity): string | null {
   switch (kind) {
     case "PII":
-      return "Avoid sharing personal info like emails or phone numbers with strangers.";
+      return "Avoid sharing personal contact info with strangers. Keep it general.";
     case "CONTROVERSIAL":
-      return "Keep it light — try asking about books, hobbies, or weekend plans instead.";
+      return "That's a heavy topic for quick small talk. Try a neutral pivot question.";
     case "COACHING":
-      return "Try asking an open question to keep the conversation flowing.";
+      return "Add an open question to keep things moving.";
     default:
       return null;
   }
 }
 
+async function getLocalCrisisSupport(zip: string): Promise<string | null> {
+  if (zip.startsWith("90210")) {
+    return "Los Angeles County Mental Health: 1-800-854-7771";
+  } else if (zip.startsWith("10001")) {
+    return "NYC Well: 1-888-NYC-WELL (1-888-692-9355)";
+  }
+  return null;
+}
+
 export async function crisisBanner(zip?: string): Promise<string> {
-  return "If you're in crisis, call or text 988 in the U.S.";
+  const national = "988 Suicide & Crisis Lifeline (U.S.)";
+  if (zip) {
+    const localSupport = await getLocalCrisisSupport(zip);
+    if (localSupport) {
+      return `If you're in crisis, you can call or text ${localSupport} or the ${national}.`;
+    }
+  }
+  return `If you're in crisis, you can call or text ${national}.`;
 }
