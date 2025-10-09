@@ -136,7 +136,6 @@ export default function App() {
             </div>
           </div>
           <h1 className="text-4xl font-light tracking-tight text-foreground">Jordan</h1>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">Your warm, patient space to practice everyday conversations</p>
         </div>
 
         {/* Setup Card */}
@@ -193,7 +192,7 @@ export default function App() {
                     onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
                   />
                   <Label htmlFor="age-confirm" className="text-sm font-normal cursor-pointer">
-                    I'm 18 or older and ready to practice
+                    I'm 18 years or older and ready to practice
                   </Label>
                 </div>
                 <Button 
