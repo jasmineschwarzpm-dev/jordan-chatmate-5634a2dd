@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { DEFAULTS, SCENES, type Scene } from "./constants";
 import { detectTriggers, prioritize, coachMessageFor, crisisBanner } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
@@ -34,6 +34,11 @@ export default function App() {
   const [cooldown, setCooldown] = useState(false);
   const [ended, setEnded] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pauseWarning, setPauseWarning] = useState(false);
+  const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
+
+  const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Persist conversation to localStorage
   useEffect(() => {
@@ -42,6 +47,28 @@ export default function App() {
     }
   }, [history]);
 
+  // Track pause time - show nudge after 2 minutes
+  useEffect(() => {
+    if (!busy && history.length > 0 && history[history.length - 1]?.role === "assistant" && !ended) {
+      setLastResponseTime(Date.now());
+      setPauseWarning(false);
+      
+      const timer = setTimeout(() => {
+        setPauseWarning(true);
+      }, 120000); // 2 minutes
+
+      return () => clearTimeout(timer);
+    }
+  }, [history, busy, ended]);
+
+  // Auto-scroll to chat when conversation starts
+  useEffect(() => {
+    if (history.length > 0 && chatRef.current) {
+      chatRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      inputRef.current?.focus();
+    }
+  }, [history.length > 0]);
+
   const summary = useMemo(() => makeSummary(history), [history]);
 
   function reset() { 
@@ -49,6 +76,8 @@ export default function App() {
     setInput(""); 
     setEnded(false); 
     setCooldown(false); 
+    setPauseWarning(false);
+    setLastResponseTime(null);
     localStorage.removeItem("jordan-conversation");
   }
 
@@ -59,6 +88,7 @@ export default function App() {
     const userText = input.trim();
     setInput("");
     setBusy(true);
+    setPauseWarning(false); // Clear pause warning on send
 
     // 1) Detect triggers on user text
     const triggers = detectTriggers(userText);
@@ -209,8 +239,12 @@ export default function App() {
         )}
 
         {/* Chat Transcript */}
-        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 min-h-[450px]">
-          <CardContent className="p-6 md:p-8 space-y-5">
+        <div ref={chatRef}>
+        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 min-h-[450px] relative overflow-hidden">
+          {/* Subtle ambient animation */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50 animate-pulse" style={{ animationDuration: "4s" }}></div>
+          
+          <CardContent className="p-6 md:p-8 space-y-5 relative z-10">
             {history.length === 0 && !ended && (
               <div className="flex items-center justify-center h-[350px] text-muted-foreground/50 text-sm">
                 Your conversation will appear here...
@@ -247,16 +281,36 @@ export default function App() {
                 </div>
               </div>
             )}
+            {pauseWarning && !busy && !ended && (
+              <div className="flex justify-center animate-fade-in">
+                <div className="px-5 py-3 rounded-2xl bg-accent/20 border border-accent/40 text-sm max-w-md">
+                  <p className="text-muted-foreground">
+                    <span className="font-medium text-foreground/80">💭 Coach:</span> Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like "What brings you here today?"
+                  </p>
+                </div>
+              </div>
+            )}
+            {pauseWarning && !busy && !ended && (
+              <div className="flex justify-center animate-fade-in">
+                <div className="px-5 py-3 rounded-2xl bg-accent/20 border border-accent/40 text-sm max-w-md">
+                  <p className="text-muted-foreground">
+                    <span className="font-medium text-foreground/80">💭 Coach:</span> Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like "What brings you here today?"
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+        </div>
 
         {/* Input Area */}
         {!ended && history.length > 0 && (
-          <Card className="border-border/50 shadow-sm">
+          <Card className={`border-0 warm-shadow backdrop-blur-sm bg-card/90 transition-all ${!busy && !input.trim() ? 'soft-glow' : ''}`}>
             <CardContent className="p-4">
-              <div className="flex gap-2">
+              <div className="flex gap-2.5">
                 <Input 
-                  className="flex-1 h-11 bg-background/50 border-border/50" 
+                  ref={inputRef}
+                  className="flex-1 h-11 bg-background/50 border-border/50 transition-all focus:border-primary/50" 
                   placeholder="Type your message..." 
                   value={input} 
                   onChange={e => setInput(e.target.value)} 
