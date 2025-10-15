@@ -160,11 +160,6 @@ export default function App() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2 pt-4 animate-fade-in">
-          <div className="inline-block p-2 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 mb-1 warm-shadow">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-accent flex items-center justify-center text-white text-2xl font-medium shadow-lg">
-              J
-            </div>
-          </div>
           <h1 className="text-4xl font-medium tracking-tight text-foreground">Jordan</h1>
           <p className="text-sm text-muted-foreground">Practice conversations in a safe space</p>
         </div>
