@@ -159,76 +159,87 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-3 pt-8 animate-fade-in">
-          <div className="inline-block p-3 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 mb-2">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xl font-light">
+        <div className="text-center space-y-2 pt-4 animate-fade-in">
+          <div className="inline-block p-2 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 mb-1 warm-shadow">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary via-primary/90 to-accent flex items-center justify-center text-white text-2xl font-medium shadow-lg">
               J
             </div>
           </div>
-          <h1 className="text-4xl font-light tracking-tight text-foreground">Jordan</h1>
+          <h1 className="text-4xl font-medium tracking-tight text-foreground">Jordan</h1>
+          <p className="text-sm text-muted-foreground">Practice conversations in a safe space</p>
         </div>
 
         {/* Setup Card */}
         {history.length === 0 && !ended && (
-          <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 animate-fade-in">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-xl font-medium">Let's get started</CardTitle>
+          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-card/80 animate-fade-in overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none"></div>
+            <CardHeader className="space-y-3 relative z-10">
+              <CardTitle className="text-2xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Let's Get Started
+              </CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Welcome! Jordan helps you practice everyday conversations in a low-pressure space. Remember, this is just for practice—not therapy or advice. If you're in the US and need support, call or text 988.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Scene</Label>
+            <CardContent className="space-y-6 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
+                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-lg">📍</span> Scene
+                  </Label>
                   <Select value={setup.scene} onValueChange={(v) => setSetup(s => ({ ...s, scene: v as Scene }))}>
-                    <SelectTrigger className="bg-background/50 border-border/50 h-11">
+                    <SelectTrigger className="bg-background border-border/50 h-11 shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {SCENES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      {SCENES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-muted-foreground">Jordan's pronouns</Label>
+                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
+                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-lg">👤</span> Jordan's Pronouns
+                  </Label>
                   <Select value={setup.interlocutor} onValueChange={(v) => setSetup(s => ({ ...s, interlocutor: v as any }))}>
-                    <SelectTrigger className="bg-background/50 border-border/50 h-11">
+                    <SelectTrigger className="bg-background border-border/50 h-11 shadow-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="neutral">neutral</SelectItem>
-                      <SelectItem value="she">she/her</SelectItem>
-                      <SelectItem value="he">he/him</SelectItem>
-                      <SelectItem value="they">they/them</SelectItem>
+                      <SelectItem value="neutral">Neutral</SelectItem>
+                      <SelectItem value="she">She/Her</SelectItem>
+                      <SelectItem value="he">He/Him</SelectItem>
+                      <SelectItem value="they">They/Them</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">ZIP (optional)</Label>
+                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
+                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-lg">📮</span> ZIP (Optional)
+                  </Label>
                   <Input 
-                    className="bg-background" 
+                    className="bg-background border-border/50 shadow-sm h-11" 
                     placeholder="e.g., 80550" 
                     value={setup.zip || ""} 
                     onChange={e => setSetup(s => ({ ...s, zip: e.target.value }))}
                   />
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center pt-2">
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center pt-3 p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+                <div className="flex items-center space-x-3">
                   <Checkbox 
                     id="age-confirm" 
                     checked={setup.ageConfirmed} 
                     onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
+                    className="border-2"
                   />
-                  <Label htmlFor="age-confirm" className="text-sm font-normal cursor-pointer">
+                  <Label htmlFor="age-confirm" className="text-sm font-medium cursor-pointer">
                     I'm 18 years or older and ready to practice
                   </Label>
                 </div>
                 <Button 
                   disabled={!canStart} 
                   onClick={() => setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }])}
-                  className="ml-auto shadow-md hover:shadow-lg transition-shadow"
+                  className="ml-auto shadow-lg hover:shadow-xl transition-all hover:scale-105"
                   size="lg"
                 >
                   Start Conversation
