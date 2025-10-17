@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MessageCircle, User } from "lucide-react";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -159,7 +161,12 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2 pt-4 animate-fade-in">
+        <div className="text-center space-y-3 pt-4 animate-fade-in">
+          <div className="flex items-center justify-center">
+            <div className="p-3 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 soft-glow">
+              <MessageCircle className="w-10 h-10 text-primary" />
+            </div>
+          </div>
           <h1 className="text-4xl font-medium tracking-tight text-foreground">Jordan</h1>
           <p className="text-sm text-muted-foreground">Practice conversations in a safe space</p>
         </div>
@@ -257,9 +264,19 @@ export default function App() {
               </div>
             )}
             {history.map((t, i) => (
-              <div key={i} className={`flex ${t.role === "user" ? "justify-end" : "justify-start"} animate-fade-in`}>
-                <div className="max-w-[85%] space-y-2">
-                  <div className={`px-5 py-3.5 rounded-3xl transition-all ${
+              <div key={i} className={`flex gap-3 ${t.role === "user" ? "justify-end" : "justify-start"} animate-[slideIn_0.3s_ease-out]`}>
+                {t.role === "assistant" && (
+                  <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20">
+                    <AvatarFallback className={`text-sm font-medium ${
+                      setup.interlocutor === "she" ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" :
+                      setup.interlocutor === "he" ? "bg-blue-500/20 text-blue-700 dark:text-blue-300" :
+                      setup.interlocutor === "they" ? "bg-green-500/20 text-green-700 dark:text-green-300" :
+                      "bg-primary/20 text-primary"
+                    }`}>J</AvatarFallback>
+                  </Avatar>
+                )}
+                <div className={`max-w-[75%] space-y-2 ${t.role === "user" ? "order-1" : ""}`}>
+                  <div className={`px-5 py-3.5 rounded-3xl transition-all hover:scale-[1.02] ${
                     t.role === "user" 
                       ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
                       : "bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm"
@@ -267,7 +284,7 @@ export default function App() {
                     <p className="leading-relaxed">{t.content}</p>
                   </div>
                   {t.coachTip && (
-                    <div className="flex items-start gap-2 px-3 py-2 rounded-2xl bg-accent/20 border border-accent/30">
+                    <div className="flex items-start gap-2 px-3 py-2 rounded-2xl bg-accent/20 border border-accent/30 animate-[fadeIn_0.4s_ease-out]">
                       <span className="text-base">💡</span>
                       <p className="text-xs text-muted-foreground leading-relaxed flex-1">
                         <span className="font-medium text-foreground/80">Coach:</span> {t.coachTip}
@@ -275,24 +292,34 @@ export default function App() {
                     </div>
                   )}
                 </div>
+                {t.role === "user" && (
+                  <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20 order-2">
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      <User className="w-5 h-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
             ))}
             {busy && (
-              <div className="flex justify-start animate-fade-in">
+              <div className="flex gap-3 justify-start animate-fade-in">
+                <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20">
+                  <AvatarFallback className={`text-sm font-medium ${
+                    setup.interlocutor === "she" ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" :
+                    setup.interlocutor === "he" ? "bg-blue-500/20 text-blue-700 dark:text-blue-300" :
+                    setup.interlocutor === "they" ? "bg-green-500/20 text-green-700 dark:text-green-300" :
+                    "bg-primary/20 text-primary"
+                  }`}>J</AvatarFallback>
+                </Avatar>
                 <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm px-5 py-3.5 rounded-3xl">
                   <span className="text-muted-foreground italic flex items-center gap-2">
-                    <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                    <span className="flex gap-1">
+                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_infinite]"></span>
+                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                    </span>
                     Jordan is typing...
                   </span>
-                </div>
-              </div>
-            )}
-            {pauseWarning && !busy && !ended && (
-              <div className="flex justify-center animate-fade-in">
-                <div className="px-5 py-3 rounded-2xl bg-accent/20 border border-accent/40 text-sm max-w-md">
-                  <p className="text-muted-foreground">
-                    <span className="font-medium text-foreground/80">💭 Coach:</span> Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like "What brings you here today?"
-                  </p>
                 </div>
               </div>
             )}
@@ -312,7 +339,20 @@ export default function App() {
         {/* Input Area */}
         {!ended && history.length > 0 && (
           <Card className={`border-0 warm-shadow backdrop-blur-sm bg-card/90 transition-all ${!busy && !input.trim() ? 'soft-glow' : ''}`}>
-            <CardContent className="p-4">
+            <CardContent className="p-4 space-y-3">
+              {/* Progress Indicator */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>{Math.floor(history.length / 2)} exchanges</span>
+                </div>
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(history.length / 4)) }).map((_, i) => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}></div>
+                  ))}
+                </div>
+              </div>
+              
               <div className="flex gap-2.5">
                 <Input 
                   ref={inputRef}
