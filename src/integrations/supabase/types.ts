@@ -14,16 +14,157 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      moderation_logs: {
+        Row: {
+          block_reason: string
+          blocked_at: string | null
+          id: string
+          moderation_details: Json | null
+          original_response: string
+          session_id: string
+        }
+        Insert: {
+          block_reason: string
+          blocked_at?: string | null
+          id?: string
+          moderation_details?: Json | null
+          original_response: string
+          session_id: string
+        }
+        Update: {
+          block_reason?: string
+          blocked_at?: string | null
+          id?: string
+          moderation_details?: Json | null
+          original_response?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_metadata: {
+        Row: {
+          avg_user_message_length: number | null
+          coaching_count: number | null
+          completion_status: string | null
+          controversial_count: number | null
+          created_at: string | null
+          crisis_count: number | null
+          id: string
+          pii_count: number | null
+          session_id: string
+        }
+        Insert: {
+          avg_user_message_length?: number | null
+          coaching_count?: number | null
+          completion_status?: string | null
+          controversial_count?: number | null
+          created_at?: string | null
+          crisis_count?: number | null
+          id?: string
+          pii_count?: number | null
+          session_id: string
+        }
+        Update: {
+          avg_user_message_length?: number | null
+          coaching_count?: number | null
+          completion_status?: string | null
+          controversial_count?: number | null
+          created_at?: string | null
+          crisis_count?: number | null
+          id?: string
+          pii_count?: number | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_metadata_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          ended_at: string | null
+          id: string
+          interlocutor: string
+          metadata: Json | null
+          scene: string
+          session_id: string
+          started_at: string | null
+          total_turns: number | null
+          transcript: Json | null
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          interlocutor: string
+          metadata?: Json | null
+          scene: string
+          session_id: string
+          started_at?: string | null
+          total_turns?: number | null
+          transcript?: Json | null
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          interlocutor?: string
+          metadata?: Json | null
+          scene?: string
+          session_id?: string
+          started_at?: string | null
+          total_turns?: number | null
+          transcript?: Json | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +291,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

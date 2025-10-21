@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { DEFAULTS, SCENES, type Scene } from "./constants";
-import { detectTriggers, prioritize, coachMessageFor, crisisBanner } from "./guardrails";
+import { detectTriggers, prioritize, coachMessageFor, crisisBanner, moderateJordanResponse } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, User } from "lucide-react";
+import { MessageCircle, User, Copy, CheckCircle } from "lucide-react";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -39,6 +40,11 @@ export default function App() {
   const [pauseWarning, setPauseWarning] = useState(false);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
 
+  // Session logging state
+  const [sessionId, setSessionId] = useState<string>("");
+  const [sessionDbId, setSessionDbId] = useState<string | null>(null);
+  const [sessionCopied, setSessionCopied] = useState(false);
+
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +52,13 @@ export default function App() {
   useEffect(() => {
     if (history.length > 0) {
       localStorage.setItem("jordan-conversation", JSON.stringify(history));
+    }
+  }, [history]);
+
+  // Auto-scroll to bottom when history updates
+  useEffect(() => {
+    if (history.length > 0 && chatRef.current) {
+      chatRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, [history]);
 
@@ -63,13 +76,12 @@ export default function App() {
     }
   }, [history, busy, ended]);
 
-  // Auto-scroll to chat when conversation starts
+  // Update session in database when history changes
   useEffect(() => {
-    if (history.length > 0 && chatRef.current) {
-      chatRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      inputRef.current?.focus();
+    if (sessionDbId && history.length > 0) {
+      updateSession();
     }
-  }, [history.length > 0]);
+  }, [history, sessionDbId]);
 
   const summary = useMemo(() => makeSummary(history), [history]);
 
@@ -80,7 +92,87 @@ export default function App() {
     setCooldown(false); 
     setPauseWarning(false);
     setLastResponseTime(null);
+    setSessionId("");
+    setSessionDbId(null);
+    setSessionCopied(false);
     localStorage.removeItem("jordan-conversation");
+  }
+
+  // Generate random 8-character session ID
+  function generateSessionId(): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "";
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  // Create new session in database
+  async function createSession() {
+    const newSessionId = generateSessionId();
+    setSessionId(newSessionId);
+
+    const { data, error } = await supabase
+      .from("sessions")
+      .insert({
+        session_id: newSessionId,
+        scene: setup.scene,
+        interlocutor: setup.interlocutor,
+        started_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to create session:", error);
+      return null;
+    }
+
+    // Create metadata record
+    await supabase.from("session_metadata").insert({
+      session_id: data.id,
+      completion_status: "in_progress",
+    });
+
+    setSessionDbId(data.id);
+    return data.id;
+  }
+
+  // Update session transcript and metadata
+  async function updateSession() {
+    if (!sessionDbId) return;
+
+    const transcript = history.map(h => ({
+      role: h.role,
+      content: h.content,
+      coachTip: h.coachTip || null,
+    }));
+
+    // Count triggers
+    const crisisCount = history.filter(h => h.coachTip?.includes("988")).length;
+    const piiCount = history.filter(h => h.coachTip?.includes("contact info")).length;
+    const controversialCount = history.filter(h => h.coachTip?.includes("polarizing")).length;
+    const coachingCount = history.filter(h => h.coachTip).length;
+
+    const userMessages = history.filter(h => h.role === "user");
+    const avgLength = userMessages.length > 0
+      ? Math.round(userMessages.reduce((sum, msg) => sum + msg.content.split(/\s+/).length, 0) / userMessages.length)
+      : 0;
+
+    await supabase.from("sessions").update({
+      transcript,
+      total_turns: history.length,
+      metadata: { userAgent: navigator.userAgent },
+    }).eq("id", sessionDbId);
+
+    await supabase.from("session_metadata").update({
+      crisis_count: crisisCount,
+      pii_count: piiCount,
+      controversial_count: controversialCount,
+      coaching_count: coachingCount,
+      avg_user_message_length: avgLength,
+    }).eq("session_id", sessionDbId);
   }
 
   const canStart = setup.ageConfirmed && !!setup.scene && !!setup.interlocutor;
@@ -149,13 +241,74 @@ export default function App() {
       reply = "(Generator unavailable) Let's keep it simple—what's one thing you've been reading or watching lately?";
     }
 
-    // 6) Commit (coach tip attached to user message, appears before Jordan's reply)
+    // 6) Moderate Jordan's response before showing to user
+    const conversationContext = history.slice(-5).map(h => `${h.role}: ${h.content}`).join("\n");
+    const moderation = await moderateJordanResponse(reply, conversationContext, sessionDbId);
+    
+    if (!moderation.safe) {
+      console.warn("Response blocked by moderation:", moderation.reason);
+      reply = moderation.finalResponse;
+    }
+
+    // 7) Commit (coach tip attached to user message, appears before Jordan's reply)
     setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: reply }]);
     setBusy(false);
     setCooldown(!!coachTip);
   }
 
-  function endSession() { setEnded(true); }
+  async function endSession() {
+    setEnded(true);
+    
+    // Mark session as completed in database
+    if (sessionDbId) {
+      await supabase.from("sessions").update({
+        ended_at: new Date().toISOString(),
+      }).eq("id", sessionDbId);
+
+      await supabase.from("session_metadata").update({
+        completion_status: "completed",
+      }).eq("session_id", sessionDbId);
+    }
+  }
+
+  async function handleStartConversation() {
+    const dbId = await createSession();
+    if (dbId) {
+      setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }]);
+    } else {
+      toast({
+        title: "Session creation failed",
+        description: "Could not create session. Continuing without logging.",
+        variant: "destructive",
+      });
+      setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }]);
+    }
+  }
+
+  function copySessionId() {
+    navigator.clipboard.writeText(sessionId).then(() => {
+      setSessionCopied(true);
+      toast({
+        title: "Session ID copied!",
+        description: "Paste it into the feedback form.",
+      });
+      setTimeout(() => setSessionCopied(false), 3000);
+    }).catch(() => {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement("textarea");
+      textArea.value = sessionId;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setSessionCopied(true);
+      toast({
+        title: "Session ID copied!",
+        description: "Paste it into the feedback form.",
+      });
+      setTimeout(() => setSessionCopied(false), 3000);
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 p-4 md:p-8">
@@ -240,7 +393,7 @@ export default function App() {
                 </div>
                 <Button 
                   disabled={!canStart} 
-                  onClick={() => setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }])}
+                  onClick={handleStartConversation}
                   className="ml-auto shadow-lg hover:shadow-xl transition-all hover:scale-105"
                   size="lg"
                 >
@@ -397,6 +550,71 @@ export default function App() {
                 </div>
               </div>
               <Button onClick={reset} variant="outline" className="mt-4" size="lg">Try Again</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Google Form Feedback - Only show when session ended */}
+        {ended && sessionId && (
+          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-card/80 animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-xl font-medium flex items-center gap-2">
+                <span>📋</span> Help Us Improve
+              </CardTitle>
+              <CardDescription>
+                Your feedback helps us make Jordan better for everyone
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Your Session ID:</p>
+                    <code className="text-lg font-mono font-bold text-foreground bg-background/60 px-3 py-1.5 rounded-lg border border-border/50">
+                      {sessionId}
+                    </code>
+                  </div>
+                  <Button
+                    onClick={copySessionId}
+                    variant={sessionCopied ? "outline" : "default"}
+                    className="flex items-center gap-2 transition-all"
+                    size="lg"
+                  >
+                    {sessionCopied ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Copy ID
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 Copy your Session ID, then paste it into the feedback form
+                </p>
+              </div>
+
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSd4iiR_gPEfwsK4_ZrGGFzCx-g3xILDQwY47sJ2MA9WAt9brA/viewform?usp=header"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button 
+                  className="w-full shadow-lg hover:shadow-xl transition-all hover:scale-105" 
+                  size="lg"
+                >
+                  <span className="mr-2">→</span> Open Feedback Form
+                </Button>
+              </a>
+
+              <p className="text-sm text-muted-foreground text-center">
+                Your responses are anonymous and help us identify issues to fix
+              </p>
             </CardContent>
           </Card>
         )}

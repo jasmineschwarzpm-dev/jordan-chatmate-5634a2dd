@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import {
   CRISIS_KEYWORDS, CONTROVERSIAL_KEYWORDS,
   EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE,
@@ -60,4 +61,58 @@ export async function crisisBanner(zip?: string): Promise<string> {
     }
   }
   return `If you're in crisis, you can call or text ${national}.`;
+}
+
+/**
+ * Moderate Jordan's response using LLM-based content moderation
+ * @param response Jordan's response to moderate
+ * @param context Recent conversation context
+ * @param sessionDbId Database ID of the session (for logging)
+ * @returns Object with safe status, reason, and final response to show
+ */
+export async function moderateJordanResponse(
+  response: string,
+  context: string,
+  sessionDbId: string | null
+): Promise<{ safe: boolean; reason?: string; finalResponse: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("moderate-response", {
+      body: { response, context },
+    });
+
+    if (error) {
+      console.error("Moderation function error:", error);
+      throw error;
+    }
+
+    if (!data.safe) {
+      console.warn("Response blocked by moderation:", data.reason);
+      
+      // Log blocked response to moderation_logs (if we have a session ID)
+      if (sessionDbId) {
+        await supabase.from("moderation_logs").insert({
+          session_id: sessionDbId,
+          original_response: response,
+          block_reason: data.reason || "Unknown reason",
+          moderation_details: data,
+        });
+      }
+
+      return {
+        safe: false,
+        reason: data.reason,
+        finalResponse: "I'm having trouble thinking of what to say. Can you ask me something else?",
+      };
+    }
+
+    return { safe: true, finalResponse: response };
+  } catch (err) {
+    console.error("Moderation failed:", err);
+    // Fail-safe: Block response if moderation system fails (strict default)
+    return {
+      safe: false,
+      reason: "Moderation system error",
+      finalResponse: "Sorry, I'm having technical difficulties. Let's try again!",
+    };
+  }
 }
