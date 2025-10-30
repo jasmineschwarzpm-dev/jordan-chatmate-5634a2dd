@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle, LogOut } from "lucide-react";
 
 interface Session {
   id: string;
@@ -90,8 +90,8 @@ export default function Admin() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        setIsAdmin(false);
-        setLoading(false);
+        // No user logged in - redirect to admin login
+        window.location.href = '/admin-login';
         return;
       }
 
@@ -298,9 +298,21 @@ export default function Admin() {
               Review test sessions and moderation logs
             </p>
           </div>
-          <Button onClick={() => window.location.href = "/"} variant="outline">
-            Back to App
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => window.location.href = "/"} variant="outline">
+              Back to App
+            </Button>
+            <Button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/admin-login';
+              }} 
+              variant="ghost"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="sessions" className="space-y-6">
