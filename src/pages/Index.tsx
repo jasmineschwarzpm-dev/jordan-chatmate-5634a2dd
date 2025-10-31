@@ -44,6 +44,7 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string>("");
   const [sessionDbId, setSessionDbId] = useState<string | null>(null);
   const [sessionCopied, setSessionCopied] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string>("");
 
   const chatRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +96,9 @@ export default function App() {
     setSessionId("");
     setSessionDbId(null);
     setSessionCopied(false);
+    setSessionToken("");
     localStorage.removeItem("jordan-conversation");
+    localStorage.removeItem("jordan-session-token");
   }
 
   // Generate random 8-character session ID
@@ -111,12 +114,17 @@ export default function App() {
   // Create new session in database
   async function createSession() {
     const newSessionId = generateSessionId();
+    const newSessionToken = crypto.randomUUID(); // Generate secure token
+    
     setSessionId(newSessionId);
+    setSessionToken(newSessionToken);
+    localStorage.setItem("jordan-session-token", newSessionToken);
 
     const { data, error } = await supabase
       .from("sessions")
       .insert({
         session_id: newSessionId,
+        session_token: newSessionToken,
         scene: setup.scene,
         interlocutor: setup.interlocutor,
         started_at: new Date().toISOString(),
@@ -132,6 +140,7 @@ export default function App() {
     // Create metadata record
     await supabase.from("session_metadata").insert({
       session_id: data.id,
+      session_token: newSessionToken,
       completion_status: "in_progress",
     });
 
@@ -141,7 +150,7 @@ export default function App() {
 
   // Update session transcript and metadata
   async function updateSession() {
-    if (!sessionDbId) return;
+    if (!sessionDbId || !sessionToken) return;
 
     const transcript = history.map(h => ({
       role: h.role,
@@ -164,7 +173,8 @@ export default function App() {
       transcript,
       total_turns: history.length,
       metadata: { userAgent: navigator.userAgent },
-    }).eq("id", sessionDbId);
+      session_token: sessionToken,
+    }).eq("id", sessionDbId).eq("session_token", sessionToken);
 
     await supabase.from("session_metadata").update({
       crisis_count: crisisCount,
@@ -172,7 +182,8 @@ export default function App() {
       controversial_count: controversialCount,
       coaching_count: coachingCount,
       avg_user_message_length: avgLength,
-    }).eq("session_id", sessionDbId);
+      session_token: sessionToken,
+    }).eq("session_id", sessionDbId).eq("session_token", sessionToken);
   }
 
   const canStart = setup.ageConfirmed && !!setup.scene && !!setup.interlocutor;
@@ -260,14 +271,16 @@ export default function App() {
     setEnded(true);
     
     // Mark session as completed in database
-    if (sessionDbId) {
+    if (sessionDbId && sessionToken) {
       await supabase.from("sessions").update({
         ended_at: new Date().toISOString(),
-      }).eq("id", sessionDbId);
+        session_token: sessionToken,
+      }).eq("id", sessionDbId).eq("session_token", sessionToken);
 
       await supabase.from("session_metadata").update({
         completion_status: "completed",
-      }).eq("session_id", sessionDbId);
+        session_token: sessionToken,
+      }).eq("session_id", sessionDbId).eq("session_token", sessionToken);
     }
   }
 

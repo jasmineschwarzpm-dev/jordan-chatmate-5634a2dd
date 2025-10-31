@@ -60,6 +60,7 @@ export type Database = {
           id: string
           pii_count: number | null
           session_id: string
+          session_token: string | null
         }
         Insert: {
           avg_user_message_length?: number | null
@@ -71,6 +72,7 @@ export type Database = {
           id?: string
           pii_count?: number | null
           session_id: string
+          session_token?: string | null
         }
         Update: {
           avg_user_message_length?: number | null
@@ -82,6 +84,7 @@ export type Database = {
           id?: string
           pii_count?: number | null
           session_id?: string
+          session_token?: string | null
         }
         Relationships: [
           {
@@ -101,6 +104,7 @@ export type Database = {
           metadata: Json | null
           scene: string
           session_id: string
+          session_token: string | null
           started_at: string | null
           total_turns: number | null
           transcript: Json | null
@@ -112,6 +116,7 @@ export type Database = {
           metadata?: Json | null
           scene: string
           session_id: string
+          session_token?: string | null
           started_at?: string | null
           total_turns?: number | null
           transcript?: Json | null
@@ -123,6 +128,7 @@ export type Database = {
           metadata?: Json | null
           scene?: string
           session_id?: string
+          session_token?: string | null
           started_at?: string | null
           total_turns?: number | null
           transcript?: Json | null
