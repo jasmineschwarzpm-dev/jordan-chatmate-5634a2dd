@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle, LogOut } from "lucide-react";
+import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle, LogOut, UserPlus, Trash2 } from "lucide-react";
 
 interface Session {
   id: string;
@@ -39,6 +39,14 @@ interface ModerationLog {
   moderation_details: any;
 }
 
+interface AdminUser {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  email?: string;
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -50,6 +58,8 @@ export default function Admin() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
 
   // Check admin access
   useEffect(() => {
@@ -61,6 +71,7 @@ export default function Admin() {
     if (isAdmin) {
       loadSessions();
       loadModerationLogs();
+      loadAdminUsers();
     }
   }, [isAdmin]);
 
@@ -206,6 +217,102 @@ export default function Admin() {
     }
   }
 
+  async function loadAdminUsers() {
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("*")
+      .eq("role", "admin")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error loading admin users:", error);
+      return;
+    }
+
+    // For client-side, we'll just show user IDs
+    // To show emails, we'd need an edge function
+    setAdminUsers((data || []) as AdminUser[]);
+  }
+
+  async function grantAdminRole() {
+    if (!newAdminEmail.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Processing...",
+      description: "Looking up user and granting access",
+    });
+
+    try {
+      // Call edge function to grant admin role by email
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({ email: newAdminEmail.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to grant admin access');
+      }
+
+      toast({
+        title: "Admin access granted",
+        description: `${newAdminEmail} is now an admin`,
+      });
+
+      setNewAdminEmail("");
+      loadAdminUsers();
+    } catch (err: any) {
+      toast({
+        title: "Error granting admin access",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
+  }
+
+  async function revokeAdminRole(userId: string, email: string) {
+    if (adminUsers.length === 1) {
+      toast({
+        title: "Cannot revoke",
+        description: "Cannot remove the last admin. Grant someone else admin first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", "admin");
+
+    if (error) {
+      toast({
+        title: "Error revoking access",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Admin access revoked",
+        description: `${email} is no longer an admin`,
+      });
+      loadAdminUsers();
+    }
+  }
+
   function exportToCSV() {
     const csvRows = [
       ["Session ID", "Scene", "Interlocutor", "Started At", "Ended At", "Total Turns", "Crisis Count", "PII Count", "Controversial Count", "Coaching Count", "Avg Message Length", "Status"]
@@ -316,9 +423,10 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="sessions">Sessions ({sessions.length})</TabsTrigger>
             <TabsTrigger value="moderation">Moderation Logs ({moderationLogs.length})</TabsTrigger>
+            <TabsTrigger value="users">User Management ({adminUsers.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sessions" className="space-y-6">
@@ -508,6 +616,78 @@ export default function Admin() {
                           <p className="text-sm">{log.original_response}</p>
                         </div>
                       </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            {/* Grant Admin Access */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Grant Admin Access
+                </CardTitle>
+                <CardDescription>
+                  Add admin privileges to an existing user by entering their email address
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && grantAdminRole()}
+                  />
+                  <Button onClick={grantAdminRole}>
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Grant Access
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Note: The user must have already signed up at /admin-login before you can grant them admin access.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Current Admins */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Admins ({adminUsers.length})</CardTitle>
+                <CardDescription>
+                  Users with admin privileges who can access this dashboard
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {adminUsers.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No admin users found</p>
+                ) : (
+                  adminUsers.map(admin => (
+                    <div key={admin.id} className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Shield className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{admin.email || `User ID: ${admin.user_id.substring(0, 8)}...`}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Admin since {new Date(admin.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => revokeAdminRole(admin.user_id, admin.email || "this user")}
+                        disabled={adminUsers.length === 1}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
                     </div>
                   ))
                 )}
