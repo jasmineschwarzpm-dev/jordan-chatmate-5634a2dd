@@ -34,35 +34,37 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
 
   return (
     <Dialog open={open}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-4">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto border-border/50 rounded-3xl p-8">
+        <DialogHeader className="space-y-6">
           <div className="flex justify-center">
-            <div className="p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-sm">
-              <MessageCircle className="w-12 h-12 text-primary" />
+            <div className="p-5 rounded-full bg-gradient-to-br from-primary/15 to-accent/15">
+              <MessageCircle className="w-14 h-14 text-primary" strokeWidth={1.5} />
             </div>
           </div>
-          <DialogTitle className="text-3xl font-semibold text-center">
-            Practice with Jordan
-          </DialogTitle>
-          <DialogDescription className="text-center text-base leading-relaxed">
-            A safe space to build confidence in everyday conversations. No pressure, just practice.
-          </DialogDescription>
+          <div className="space-y-2">
+            <DialogTitle className="text-4xl font-bold text-center bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              Practice with Jordan
+            </DialogTitle>
+            <DialogDescription className="text-center text-base leading-relaxed text-muted-foreground">
+              A safe space to build confidence in everyday conversations
+            </DialogDescription>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
-          <div className="p-6 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/30">
+        <div className="space-y-6 mt-8">
+          <div className="p-5 rounded-2xl bg-muted/40 border border-border/30">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Welcome! Jordan helps you practice everyday conversations in a low-pressure space. This is for practice—not therapy or advice. If you're in the US and need support, call or text 988.
+              Jordan helps you practice everyday conversations. This is for practice—not therapy. If you need support, call or text <span className="font-semibold">988</span>.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-5">
             <div className="space-y-3">
-              <Label className="text-base font-semibold flex items-center gap-2">
-                <span className="text-xl">📍</span> Scene
+              <Label className="text-sm font-semibold text-foreground">
+                Choose a scene
               </Label>
               <Select value={scene} onValueChange={(v) => setScene(v as Scene)}>
-                <SelectTrigger className="h-12 text-base">
+                <SelectTrigger className="h-12 text-base border-border/50 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -76,11 +78,11 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base font-semibold flex items-center gap-2">
-                <span className="text-xl">👤</span> Jordan's Pronouns
+              <Label className="text-sm font-semibold text-foreground">
+                Jordan's pronouns
               </Label>
               <Select value={interlocutor} onValueChange={(v) => setInterlocutor(v as any)}>
-                <SelectTrigger className="h-12 text-base">
+                <SelectTrigger className="h-12 text-base border-border/50 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -91,36 +93,36 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-foreground">
+                ZIP code <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                className="h-12 text-base border-border/50 rounded-xl"
+                placeholder="e.g., 80550"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <Label className="text-base font-semibold flex items-center gap-2">
-              <span className="text-xl">📮</span> ZIP Code (Optional)
-            </Label>
-            <Input
-              className="h-12 text-base"
-              placeholder="e.g., 80550"
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 p-5 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
-            <div className="flex items-start gap-3">
+          <div className="space-y-4 pt-4">
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5">
               <Checkbox
                 id="age-confirm"
                 checked={ageConfirmed}
                 onCheckedChange={(checked) => setAgeConfirmed(checked as boolean)}
-                className="border-2 mt-1"
+                className="border-2 mt-0.5"
               />
-              <Label htmlFor="age-confirm" className="text-base font-medium cursor-pointer leading-relaxed">
+              <Label htmlFor="age-confirm" className="text-sm font-medium cursor-pointer leading-relaxed">
                 I'm 18 years or older and ready to practice
               </Label>
             </div>
             <Button
               disabled={!canStart}
               onClick={handleStart}
-              className="w-full shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 h-12 text-base"
+              className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity rounded-2xl"
               size="lg"
             >
               Start Conversation

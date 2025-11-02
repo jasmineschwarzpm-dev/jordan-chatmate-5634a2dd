@@ -10,92 +10,92 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Warm, calming base colors */
-    --background: 28 40% 98%;
-    --foreground: 25 30% 25%;
+    /* Clean, modern neutrals with subtle warmth */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 10%;
 
-    /* Soft card backgrounds */
-    --card: 32 45% 96%;
-    --card-foreground: 25 30% 25%;
+    /* Soft, elevated cards */
+    --card: 0 0% 99%;
+    --card-foreground: 240 10% 10%;
 
-    /* Subtle popover */
-    --popover: 32 45% 96%;
-    --popover-foreground: 25 30% 25%;
+    /* Minimal popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
 
-    /* Warm primary - soft terracotta */
-    --primary: 20 65% 68%;
+    /* Primary: Modern soft purple/blue (Gen Z friendly) */
+    --primary: 250 80% 65%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary warm tones */
-    --secondary: 32 40% 90%;
-    --secondary-foreground: 25 30% 25%;
+    /* Secondary: Light neutral */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 10% 10%;
 
-    /* Muted warm tones */
-    --muted: 32 35% 92%;
-    --muted-foreground: 25 20% 45%;
+    /* Muted tones */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 5% 45%;
 
-    /* Soft accent - peachy coral */
-    --accent: 15 70% 75%;
-    --accent-foreground: 25 30% 25%;
+    /* Accent: Bright, energetic coral/pink */
+    --accent: 340 85% 65%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Gentle borders */
-    --border: 32 25% 88%;
-    --input: 32 25% 88%;
-    --ring: 20 65% 68%;
+    /* Clean borders */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 250 80% 65%;
 
-    /* Semantic colors - warm tones */
-    --destructive: 0 65% 65%;
+    /* Semantic colors */
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --sidebar-background: 28 40% 98%;
-    --sidebar-foreground: 25 30% 25%;
-    --sidebar-primary: 20 65% 68%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 10% 10%;
+    --sidebar-primary: 250 80% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 32 35% 92%;
-    --sidebar-accent-foreground: 25 30% 25%;
-    --sidebar-border: 32 25% 88%;
-    --sidebar-ring: 20 65% 68%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 250 80% 65%;
   }
 
   .dark {
-    --background: 25 20% 12%;
-    --foreground: 32 15% 90%;
+    --background: 240 10% 8%;
+    --foreground: 0 0% 98%;
 
-    --card: 25 18% 15%;
-    --card-foreground: 32 15% 90%;
+    --card: 240 8% 10%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 25 18% 15%;
-    --popover-foreground: 32 15% 90%;
+    --popover: 240 8% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 20 60% 60%;
+    --primary: 250 75% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 15% 22%;
-    --secondary-foreground: 32 15% 90%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 25 15% 20%;
-    --muted-foreground: 32 10% 60%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 60%;
 
-    --accent: 15 65% 65%;
-    --accent-foreground: 32 15% 90%;
+    --accent: 340 80% 60%;
+    --accent-foreground: 0 0% 100%;
 
-    --border: 25 15% 25%;
-    --input: 25 15% 25%;
-    --ring: 20 60% 60%;
+    --border: 240 5% 20%;
+    --input: 240 5% 20%;
+    --ring: 250 75% 60%;
 
-    --destructive: 0 60% 55%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --sidebar-background: 25 20% 12%;
-    --sidebar-foreground: 32 15% 90%;
-    --sidebar-primary: 20 60% 60%;
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 250 75% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 15% 20%;
-    --sidebar-accent-foreground: 32 15% 90%;
-    --sidebar-border: 25 15% 25%;
-    --sidebar-ring: 20 60% 60%;
+    --sidebar-accent: 240 5% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 20%;
+    --sidebar-ring: 250 75% 60%;
   }
 }
 
@@ -106,22 +106,28 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm;
+    @apply bg-card/60 backdrop-blur-xl border border-border/50;
   }
   
-  .warm-shadow {
-    box-shadow: 0 4px 20px -2px hsl(var(--primary) / 0.1), 0 2px 8px -2px hsl(var(--primary) / 0.05);
+  .clean-shadow {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
   }
   
-  .soft-glow {
-    box-shadow: 0 0 30px -5px hsl(var(--primary) / 0.15);
+  .elevated-shadow {
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -1px rgb(0 0 0 / 0.04);
+  }
+  
+  .glow-primary {
+    box-shadow: 0 0 24px -6px hsl(var(--primary) / 0.3);
   }
 
   /* Smooth message animations */

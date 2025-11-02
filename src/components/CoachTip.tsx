@@ -12,19 +12,19 @@ export const CoachTip = ({ content, isCrisis = false }: CoachTipProps) => {
         className={`
           max-w-xl px-5 py-4 rounded-2xl border
           ${isCrisis 
-            ? "bg-destructive/10 border-destructive/30 text-destructive-foreground" 
-            : "bg-accent/10 border-accent/30 text-foreground"
+            ? "bg-destructive/10 border-destructive/30 text-destructive" 
+            : "bg-primary/5 border-primary/20 text-foreground"
           }
-          backdrop-blur-sm shadow-sm
+          clean-shadow
         `}
       >
         <div className="flex items-start gap-3">
-          <div className={`shrink-0 mt-1 ${isCrisis ? "text-destructive" : "text-accent"}`}>
+          <div className={`shrink-0 mt-0.5 ${isCrisis ? "text-destructive" : "text-primary"}`}>
             {isCrisis ? <AlertCircle className="w-5 h-5" /> : <Lightbulb className="w-5 h-5" />}
           </div>
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
-              {isCrisis ? "Important Notice" : "Coach Tip"}
+          <div className="space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wider opacity-60">
+              {isCrisis ? "Important" : "Coach"}
             </p>
             <p className="text-sm leading-relaxed">
               {content}

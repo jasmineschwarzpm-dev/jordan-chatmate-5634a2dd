@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, RotateCcw, User as UserIcon, Copy } from "lucide-react";
+import { Send, RotateCcw, X } from "lucide-react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { CoachTip } from "@/components/CoachTip";
@@ -326,19 +326,19 @@ export default function App() {
     <>
       <SetupDialog open={showSetup} onStartConversation={handleStartConversation} />
       
-      {/* Full-Screen Chat Interface */}
-      <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
-        {/* Header */}
-        <header className="border-b border-border/40 bg-card/50 backdrop-blur-md px-4 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-primary/20 bg-gradient-to-br from-primary/30 to-accent/30">
-              <AvatarFallback className="bg-transparent text-primary font-semibold text-lg">
+      {/* Full-Screen Chat Interface - Gen Z Modern Design */}
+      <div className="h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
+        {/* Minimal Header */}
+        <header className="border-b border-border/50 bg-background/80 backdrop-blur-md px-6 py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-11 w-11 border-2 border-primary/10 bg-gradient-to-br from-primary/20 to-accent/20">
+              <AvatarFallback className="bg-transparent text-primary font-bold text-xl">
                 J
               </AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-semibold text-foreground">Jordan</h2>
-              <p className="text-xs text-muted-foreground capitalize">
+              <h2 className="font-semibold text-lg text-foreground">Jordan</h2>
+              <p className="text-xs text-muted-foreground">
                 {setup.scene} • {Math.floor(history.length / 2)} exchanges
               </p>
             </div>
@@ -346,23 +346,23 @@ export default function App() {
           
           <div className="flex items-center gap-2">
             {!ended && history.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={endSession}>
-                End Session
+              <Button variant="ghost" size="sm" onClick={endSession} className="hover:bg-muted">
+                End
               </Button>
             )}
             {history.length > 0 && (
-              <Button variant="ghost" size="icon" onClick={reset} title="Start Over">
+              <Button variant="ghost" size="icon" onClick={reset} className="hover:bg-muted">
                 <RotateCcw className="w-4 h-4" />
               </Button>
             )}
           </div>
         </header>
 
-        {/* Messages Area */}
+        {/* Messages Area - Clean and spacious */}
         <ScrollArea className="flex-1">
-          <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
             {history.map((t, i) => (
-              <div key={i} className="space-y-3 animate-slide-in">
+              <div key={i} className="space-y-4 animate-slide-in">
                 <MessageBubble role={t.role} content={t.content} />
                 {t.coachTip && (
                   <CoachTip content={t.coachTip} isCrisis={t.coachTip.includes("988")} />
@@ -379,7 +379,7 @@ export default function App() {
             )}
             
             {ended && (
-              <div className="mt-8 space-y-6 animate-fade-in">
+              <div className="mt-12 space-y-8 animate-fade-in">
                 <SessionSummary
                   summary={{
                     practiced: summary.practiced,
@@ -393,14 +393,14 @@ export default function App() {
                 />
                 
                 {sessionId && (
-                  <div className="p-6 rounded-2xl border-2 border-accent/30 bg-gradient-to-br from-card to-accent/5 warm-shadow">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-3 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20">
-                        <span className="text-2xl">📋</span>
+                  <div className="p-8 rounded-3xl border border-border/50 bg-gradient-to-br from-background to-muted/30 clean-shadow">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="p-4 rounded-2xl bg-primary/10">
+                        <span className="text-3xl">💬</span>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-lg">Help Us Improve</h3>
-                        <p className="text-sm text-muted-foreground">Your feedback makes Jordan better</p>
+                        <h3 className="font-semibold text-xl">Share Your Experience</h3>
+                        <p className="text-sm text-muted-foreground mt-1">Help us make Jordan better for everyone</p>
                       </div>
                     </div>
                     <a
@@ -408,8 +408,11 @@ export default function App() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Button className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90">
-                        Open Feedback Form →
+                      <Button 
+                        className="w-full h-14 text-base font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity rounded-2xl"
+                        size="lg"
+                      >
+                        Give Feedback
                       </Button>
                     </a>
                   </div>
@@ -421,24 +424,24 @@ export default function App() {
           </div>
         </ScrollArea>
 
-        {/* Input Area */}
+        {/* Input Area - Clean, elevated */}
         {!ended && history.length > 0 && (
-          <div className="border-t border-border/40 bg-card/80 backdrop-blur-md px-4 py-4 shrink-0">
-            <div className="max-w-4xl mx-auto flex gap-3">
+          <div className="border-t border-border/50 bg-background/95 backdrop-blur-md px-4 md:px-6 py-5 shrink-0 elevated-shadow">
+            <div className="max-w-3xl mx-auto flex gap-3">
               <Input
                 ref={inputRef}
-                className="flex-1 h-12 bg-background border-border/50 transition-all focus:border-primary/50 text-base px-4"
+                className="flex-1 h-14 bg-muted/40 border-border/50 focus:border-primary/50 focus:bg-background text-base px-5 rounded-2xl transition-all"
                 placeholder="Type your message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) send(); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }}}
                 disabled={busy}
               />
               <Button
                 onClick={send}
                 disabled={busy || !input.trim()}
                 size="lg"
-                className="h-12 px-6 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+                className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-accent hover:opacity-90 transition-opacity p-0"
               >
                 <Send className="w-5 h-5" />
               </Button>

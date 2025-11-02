@@ -10,20 +10,20 @@ export const MessageBubble = ({ role, content }: MessageBubbleProps) => {
   const isUser = role === "user";
 
   return (
-    <div className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"} group`}>
+    <div className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
       {/* Avatar */}
       {!isUser && (
-        <Avatar className="h-12 w-12 border-2 border-primary/20 bg-gradient-to-br from-primary/30 to-accent/30 shrink-0">
-          <AvatarFallback className="bg-transparent text-primary font-semibold text-xl">
+        <Avatar className="h-10 w-10 border-2 border-primary/10 bg-gradient-to-br from-primary/15 to-accent/15 shrink-0">
+          <AvatarFallback className="bg-transparent text-primary font-bold text-lg">
             J
           </AvatarFallback>
         </Avatar>
       )}
       
       {isUser && (
-        <Avatar className="h-12 w-12 border-2 border-muted bg-muted shrink-0">
+        <Avatar className="h-10 w-10 bg-muted/60 shrink-0">
           <AvatarFallback className="bg-transparent">
-            <User className="w-6 h-6 text-muted-foreground" />
+            <User className="w-5 h-5 text-muted-foreground" />
           </AvatarFallback>
         </Avatar>
       )}
@@ -31,15 +31,15 @@ export const MessageBubble = ({ role, content }: MessageBubbleProps) => {
       {/* Message Content */}
       <div
         className={`
-          max-w-[75%] sm:max-w-[70%] px-5 py-4 rounded-2xl
+          max-w-[75%] sm:max-w-[70%] px-5 py-3.5 rounded-3xl
           ${isUser 
-            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground rounded-tr-md" 
-            : "bg-card border border-border/50 text-card-foreground rounded-tl-md warm-shadow"
+            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground" 
+            : "bg-muted/60 border border-border/40 text-foreground clean-shadow"
           }
           transition-all duration-200
         `}
       >
-        <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
+        <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
           {content}
         </p>
       </div>
