@@ -11,8 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, User, Copy, CheckCircle } from "lucide-react";
+import { MessageCircle, Send, RotateCcw } from "lucide-react";
+import { MessageBubble } from "@/components/MessageBubble";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { CoachTip } from "@/components/CoachTip";
+import { SessionSummary } from "@/components/SessionSummary";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -429,74 +432,22 @@ export default function App() {
                 Your conversation will appear here...
               </div>
             )}
+            
             {history.map((t, i) => (
-              <div key={i} className={`flex gap-3 ${t.role === "user" ? "justify-end" : "justify-start"} animate-[slideIn_0.3s_ease-out]`}>
-                {t.role === "assistant" && (
-                  <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20">
-                    <AvatarFallback className={`text-sm font-medium ${
-                      setup.interlocutor === "she" ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" :
-                      setup.interlocutor === "he" ? "bg-blue-500/20 text-blue-700 dark:text-blue-300" :
-                      setup.interlocutor === "they" ? "bg-green-500/20 text-green-700 dark:text-green-300" :
-                      "bg-primary/20 text-primary"
-                    }`}>J</AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={`max-w-[75%] space-y-2 ${t.role === "user" ? "order-1" : ""}`}>
-                  <div className={`px-5 py-3.5 rounded-3xl transition-all hover:scale-[1.02] ${
-                    t.role === "user" 
-                      ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md" 
-                      : "bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm"
-                  }`}>
-                    <p className="leading-relaxed">{t.content}</p>
-                  </div>
-                  {t.coachTip && (
-                    <div className="flex items-start gap-2 px-3 py-2 rounded-2xl bg-accent/20 border border-accent/30 animate-[fadeIn_0.4s_ease-out]">
-                      <span className="text-base">💡</span>
-                      <p className="text-xs text-muted-foreground leading-relaxed flex-1">
-                        <span className="font-medium text-foreground/80">Coach:</span> {t.coachTip}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                {t.role === "user" && (
-                  <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20 order-2">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      <User className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
+              <div key={i} className="space-y-3">
+                <MessageBubble role={t.role} content={t.content} />
+                {t.coachTip && (
+                  <CoachTip content={t.coachTip} isCrisis={t.coachTip.includes("988")} />
                 )}
               </div>
             ))}
-            {busy && (
-              <div className="flex gap-3 justify-start animate-fade-in">
-                <Avatar className="w-9 h-9 flex-shrink-0 mt-1 border-2 border-primary/20">
-                  <AvatarFallback className={`text-sm font-medium ${
-                    setup.interlocutor === "she" ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" :
-                    setup.interlocutor === "he" ? "bg-blue-500/20 text-blue-700 dark:text-blue-300" :
-                    setup.interlocutor === "they" ? "bg-green-500/20 text-green-700 dark:text-green-300" :
-                    "bg-primary/20 text-primary"
-                  }`}>J</AvatarFallback>
-                </Avatar>
-                <div className="bg-gradient-to-br from-card to-card/80 border border-border/50 shadow-sm px-5 py-3.5 rounded-3xl">
-                  <span className="text-muted-foreground italic flex items-center gap-2">
-                    <span className="flex gap-1">
-                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_infinite]"></span>
-                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
-                      <span className="inline-block w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
-                    </span>
-                    Jordan is typing...
-                  </span>
-                </div>
-              </div>
-            )}
+            
+            {busy && <TypingIndicator />}
+            
             {pauseWarning && !busy && !ended && (
-              <div className="flex justify-center animate-fade-in">
-                <div className="px-5 py-3 rounded-2xl bg-accent/20 border border-accent/40 text-sm max-w-md">
-                  <p className="text-muted-foreground">
-                    <span className="font-medium text-foreground/80">💭 Coach:</span> Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like "What brings you here today?"
-                  </p>
-                </div>
-              </div>
+              <CoachTip 
+                content="Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like 'What brings you here today?'" 
+              />
             )}
           </CardContent>
         </Card>
@@ -522,16 +473,42 @@ export default function App() {
               <div className="flex gap-2.5">
                 <Input 
                   ref={inputRef}
-                  className="flex-1 h-11 bg-background/50 border-border/50 transition-all focus:border-primary/50" 
+                  className="flex-1 h-12 bg-background/50 border-border/50 transition-all focus:border-primary/50 text-base" 
                   placeholder="Type your message..." 
                   value={input} 
                   onChange={e => setInput(e.target.value)} 
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(); }}
                   disabled={busy}
                 />
-                <Button onClick={send} disabled={busy || !input.trim()} size="lg" className="shadow-md">Send</Button>
-                <Button variant="outline" onClick={endSession} disabled={history.length === 0} size="lg">End</Button>
-                <Button variant="ghost" onClick={reset} size="lg">Reset</Button>
+                <Button 
+                  onClick={send} 
+                  disabled={busy || !input.trim()} 
+                  size="lg" 
+                  className="h-12 px-6 shadow-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={endSession} 
+                  disabled={history.length === 0} 
+                  size="sm"
+                  className="flex-1"
+                >
+                  End Session
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={reset} 
+                  size="sm"
+                  className="flex-1"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -539,78 +516,39 @@ export default function App() {
 
         {/* Summary */}
         {ended && (
-          <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-xl font-medium">Session Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3 text-sm">
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/30">
-                  <p className="text-muted-foreground mb-1">Practiced</p>
-                  <p className="font-medium">{summary.practiced.join(", ") || "opener, small talk, exit"}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-accent/10 border border-accent/30">
-                  <p className="text-muted-foreground mb-1">Went well</p>
-                  <p className="font-medium">{summary.wentWell.join("; ") || "kept it polite and on-topic"}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-primary/10 border border-primary/30">
-                  <p className="text-muted-foreground mb-1">Improve next</p>
-                  <p className="font-medium">{summary.nextStep || "add an open question by turn 3"}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-card border border-border/50">
-                  <p className="text-muted-foreground mb-1">Sample line to try</p>
-                  <p className="font-medium italic">"{summary.sampleLine || getSampleLine()}"</p>
-                </div>
-              </div>
-              <Button onClick={reset} variant="outline" className="mt-4" size="lg">Try Again</Button>
-            </CardContent>
-          </Card>
+          <SessionSummary
+            summary={{
+              practiced: summary.practiced,
+              improve: summary.wentWell,
+              sampleLine: summary.sampleLine || getSampleLine()
+            }}
+            onReset={reset}
+            sessionId={sessionId}
+            sessionCopied={sessionCopied}
+            onCopySessionId={copySessionId}
+          />
         )}
 
         {/* Google Form Feedback - Only show when session ended */}
         {ended && sessionId && (
-          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-card/80 animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-xl font-medium flex items-center gap-2">
-                <span>📋</span> Help Us Improve
-              </CardTitle>
-              <CardDescription>
-                Your feedback helps us make Jordan better for everyone
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Your Session ID:</p>
-                    <code className="text-lg font-mono font-bold text-foreground bg-background/60 px-3 py-1.5 rounded-lg border border-border/50">
-                      {sessionId}
-                    </code>
-                  </div>
-                  <Button
-                    onClick={copySessionId}
-                    variant={sessionCopied ? "outline" : "default"}
-                    className="flex items-center gap-2 transition-all"
-                    size="lg"
-                  >
-                    {sessionCopied ? (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        Copy ID
-                      </>
-                    )}
-                  </Button>
+          <Card className="border-2 border-accent/30 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-accent/5 animate-fade-in overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 pointer-events-none"></div>
+            
+            <CardHeader className="relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20">
+                  <span className="text-2xl">📋</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  💡 Copy your Session ID, then paste it into the feedback form
-                </p>
+                <div>
+                  <CardTitle className="text-xl font-semibold">Help Us Improve</CardTitle>
+                  <CardDescription className="mt-1">
+                    Your feedback makes Jordan better for everyone
+                  </CardDescription>
+                </div>
               </div>
-
+            </CardHeader>
+            
+            <CardContent className="space-y-5 relative z-10">
               <a
                 href="https://docs.google.com/forms/d/e/1FAIpQLSd4iiR_gPEfwsK4_ZrGGFzCx-g3xILDQwY47sJ2MA9WAt9brA/viewform?usp=header"
                 target="_blank"
@@ -618,15 +556,15 @@ export default function App() {
                 className="block"
               >
                 <Button 
-                  className="w-full shadow-lg hover:shadow-xl transition-all hover:scale-105" 
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]" 
                   size="lg"
                 >
-                  <span className="mr-2">→</span> Open Feedback Form
+                  Open Feedback Form →
                 </Button>
               </a>
 
               <p className="text-sm text-muted-foreground text-center">
-                Your responses are anonymous and help us identify issues to fix
+                Anonymous responses help us identify issues and improve the experience
               </p>
             </CardContent>
           </Card>
