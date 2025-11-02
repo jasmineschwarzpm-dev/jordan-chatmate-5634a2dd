@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle, LogOut, UserPlus, Trash2 } from "lucide-react";
+import { Shield, Search, Download, AlertTriangle, CheckCircle, XCircle, LogOut, UserPlus, Trash2, TrendingUp, Users, Clock, MessageSquare, BarChart3 } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface Session {
   id: string;
@@ -422,6 +423,157 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Summary Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Sessions</p>
+                  <p className="text-3xl font-bold mt-2">{sessions.length}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Duration</p>
+                  <p className="text-3xl font-bold mt-2">
+                    {sessions.length > 0 
+                      ? Math.round(
+                          sessions
+                            .filter(s => s.ended_at)
+                            .reduce((acc, s) => acc + (new Date(s.ended_at!).getTime() - new Date(s.started_at).getTime()) / 60000, 0) 
+                          / sessions.filter(s => s.ended_at).length
+                        )
+                      : 0}m
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-accent" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
+                  <p className="text-3xl font-bold mt-2">
+                    {sessions.length > 0
+                      ? Math.round(
+                          (Object.values(sessionMetadata).filter(m => m.completion_status === 'completed').length / sessions.length) * 100
+                        )
+                      : 0}%
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Turns</p>
+                  <p className="text-3xl font-bold mt-2">
+                    {sessions.length > 0
+                      ? Math.round(sessions.reduce((acc, s) => acc + s.total_turns, 0) / sessions.length)
+                      : 0}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        {sessions.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Trigger Distribution Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Coaching Triggers
+                </CardTitle>
+                <CardDescription>Distribution of different trigger types</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={[
+                    { name: 'Crisis', count: Object.values(sessionMetadata).reduce((acc, m) => acc + (m.crisis_count || 0), 0) },
+                    { name: 'PII', count: Object.values(sessionMetadata).reduce((acc, m) => acc + (m.pii_count || 0), 0) },
+                    { name: 'Controversial', count: Object.values(sessionMetadata).reduce((acc, m) => acc + (m.controversial_count || 0), 0) },
+                    { name: 'Coaching', count: Object.values(sessionMetadata).reduce((acc, m) => acc + (m.coaching_count || 0), 0) },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Scene Distribution Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Popular Scenes
+                </CardTitle>
+                <CardDescription>Which scenarios users practice most</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(
+                        sessions.reduce((acc, s) => {
+                          acc[s.scene] = (acc[s.scene] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>)
+                      ).map(([name, value]) => ({ name, value }))}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="hsl(var(--primary))"
+                      dataKey="value"
+                    >
+                      {sessions.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${1 - (index * 0.2)})`} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Tabs defaultValue="sessions" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="sessions">Sessions ({sessions.length})</TabsTrigger>
@@ -475,9 +627,30 @@ export default function Admin() {
             {/* Sessions List */}
             <div className="grid gap-4">
               {filteredSessions.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <p className="text-muted-foreground">No sessions found</p>
+                <Card className="border-dashed">
+                  <CardContent className="p-12 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto">
+                      <MessageSquare className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-lg mb-2">No sessions found</p>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                        {searchQuery || statusFilter !== 'all' 
+                          ? "Try adjusting your filters to see more results."
+                          : "Sessions will appear here once users start practicing conversations with Jordan."}
+                      </p>
+                    </div>
+                    {(searchQuery || statusFilter !== 'all') && (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setSearchQuery('');
+                          setStatusFilter('all');
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
