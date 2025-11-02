@@ -1,21 +1,20 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { DEFAULTS, SCENES, type Scene } from "./constants";
-import { detectTriggers, prioritize, coachMessageFor, crisisBanner, moderateJordanResponse } from "./guardrails";
+import { DEFAULTS, type Scene } from "./constants";
+import { detectTriggers, prioritize, crisisBanner, moderateJordanResponse } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { MessageCircle, Send, RotateCcw } from "lucide-react";
+import { Send, RotateCcw, User as UserIcon, Copy } from "lucide-react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { CoachTip } from "@/components/CoachTip";
 import { SessionSummary } from "@/components/SessionSummary";
+import { SetupDialog } from "@/components/SetupDialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
@@ -29,13 +28,11 @@ export default function App() {
   
   // Setup state
   const [setup, setSetup] = useState<Setup>({ scene: DEFAULTS.scene, interlocutor: "neutral", ageConfirmed: false });
+  const [showSetup, setShowSetup] = useState(true);
   const adapter: Adapter = "lovable"; // Fixed to Lovable
 
   // Conversation state
-  const [history, setHistory] = useState<Turn[]>(() => {
-    const saved = localStorage.getItem("jordan-conversation");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [history, setHistory] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [cooldown, setCooldown] = useState(false);
   const [ended, setEnded] = useState(false);
@@ -49,22 +46,20 @@ export default function App() {
   const [sessionCopied, setSessionCopied] = useState(false);
   const [sessionToken, setSessionToken] = useState<string>("");
 
-  const chatRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Persist conversation to localStorage
-  useEffect(() => {
-    if (history.length > 0) {
-      localStorage.setItem("jordan-conversation", JSON.stringify(history));
-    }
-  }, [history]);
 
   // Auto-scroll to bottom when history updates
   useEffect(() => {
-    if (history.length > 0 && chatRef.current) {
-      chatRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history]);
+
+  // Auto-focus input when conversation starts
+  useEffect(() => {
+    if (history.length > 0 && !ended && !busy) {
+      inputRef.current?.focus();
+    }
+  }, [history.length, ended, busy]);
 
   // Track pause time - show nudge after 2 minutes
   useEffect(() => {
@@ -100,6 +95,7 @@ export default function App() {
     setSessionDbId(null);
     setSessionCopied(false);
     setSessionToken("");
+    setShowSetup(true);
     localStorage.removeItem("jordan-conversation");
     localStorage.removeItem("jordan-session-token");
   }
@@ -188,8 +184,6 @@ export default function App() {
       session_token: sessionToken,
     }).eq("session_id", sessionDbId).eq("session_token", sessionToken);
   }
-
-  const canStart = setup.ageConfirmed && !!setup.scene && !!setup.interlocutor;
 
   async function send() {
     if (!input.trim() || busy || ended) return;
@@ -287,17 +281,20 @@ export default function App() {
     }
   }
 
-  async function handleStartConversation() {
+  async function handleStartConversation(setupData: Setup) {
+    setSetup(setupData);
+    setShowSetup(false);
+    
     const dbId = await createSession();
     if (dbId) {
-      setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }]);
+      setHistory([{ role: "assistant", content: openingLine(setupData.scene) }]);
     } else {
       toast({
         title: "Session creation failed",
         description: "Could not create session. Continuing without logging.",
         variant: "destructive",
       });
-      setHistory(h => [...h, { role: "assistant", content: openingLine(setup.scene) }]);
+      setHistory([{ role: "assistant", content: openingLine(setupData.scene) }]);
     }
   }
 
@@ -310,7 +307,6 @@ export default function App() {
       });
       setTimeout(() => setSessionCopied(false), 3000);
     }).catch(() => {
-      // Fallback for browsers that don't support clipboard API
       const textArea = document.createElement("textarea");
       textArea.value = sessionId;
       document.body.appendChild(textArea);
@@ -327,124 +323,46 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/8 py-8 md:py-12">
-      <div className="container max-w-4xl mx-auto px-4 space-y-6">
-        
-        {/* Welcome Header - Only show before conversation starts */}
-        {history.length === 0 && !ended && (
-          <div className="text-center space-y-4 animate-fade-in px-4 mb-8">
-            <div className="inline-block p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-sm mb-2">
-              <MessageCircle className="w-12 h-12 text-primary" />
+    <>
+      <SetupDialog open={showSetup} onStartConversation={handleStartConversation} />
+      
+      {/* Full-Screen Chat Interface */}
+      <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+        {/* Header */}
+        <header className="border-b border-border/40 bg-card/50 backdrop-blur-md px-4 py-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 border-2 border-primary/20 bg-gradient-to-br from-primary/30 to-accent/30">
+              <AvatarFallback className="bg-transparent text-primary font-semibold text-lg">
+                J
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="font-semibold text-foreground">Jordan</h2>
+              <p className="text-xs text-muted-foreground capitalize">
+                {setup.scene} • {Math.floor(history.length / 2)} exchanges
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-semibold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              Practice with Jordan
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-              A safe space to build confidence in everyday conversations. No pressure, just practice.
-            </p>
           </div>
-        )}
-
-        {/* Setup Card */}
-        {history.length === 0 && !ended && (
-          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5 overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-60 pointer-events-none"></div>
-            <CardHeader className="relative z-10 border-b border-border/30 pb-6">
-              <CardTitle className="text-2xl font-semibold">
-                Choose Your Scenario
-              </CardTitle>
-              <CardDescription className="text-base mt-2 leading-relaxed">
-                Welcome! Jordan helps you practice everyday conversations in a low-pressure space. This is for practice—not therapy or advice. If you're in the US and need support, call or text 988.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 relative z-10 pt-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
-                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-xl">📍</span> Scene
-                  </Label>
-                  <Select value={setup.scene} onValueChange={(v) => setSetup(s => ({ ...s, scene: v as Scene }))}>
-                    <SelectTrigger className="bg-background border-border/50 h-12 shadow-sm hover:border-primary/30 transition-colors">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SCENES.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
-                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-xl">👤</span> Jordan's Pronouns
-                  </Label>
-                  <Select value={setup.interlocutor} onValueChange={(v) => setSetup(s => ({ ...s, interlocutor: v as any }))}>
-                    <SelectTrigger className="bg-background border-border/50 h-12 shadow-sm hover:border-primary/30 transition-colors">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="neutral">Neutral</SelectItem>
-                      <SelectItem value="she">She/Her</SelectItem>
-                      <SelectItem value="he">He/Him</SelectItem>
-                      <SelectItem value="they">They/Them</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
-                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-xl">📮</span> ZIP (Optional)
-                  </Label>
-                  <Input 
-                    className="bg-background border-border/50 shadow-sm h-12 hover:border-primary/30 transition-colors" 
-                    placeholder="e.g., 80550" 
-                    value={setup.zip || ""} 
-                    onChange={e => setSetup(s => ({ ...s, zip: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center pt-6 p-5 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
-                <div className="flex items-start gap-3">
-                  <Checkbox 
-                    id="age-confirm" 
-                    checked={setup.ageConfirmed} 
-                    onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
-                    className="border-2 mt-1"
-                  />
-                  <Label htmlFor="age-confirm" className="text-base font-medium cursor-pointer leading-relaxed">
-                    I'm 18 years or older and ready to practice
-                  </Label>
-                </div>
-                <Button 
-                  disabled={!canStart} 
-                  onClick={handleStartConversation}
-                  className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-                  size="lg"
-                >
-                  Start Conversation →
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Chat Transcript */}
-        <div ref={chatRef}>
-        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/95 min-h-[500px] relative overflow-hidden">
-          {/* Subtle ambient animation */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-accent/3 opacity-60 animate-pulse" style={{ animationDuration: "6s" }}></div>
           
-          <CardContent className="p-6 md:p-10 space-y-6 relative z-10">
-            {history.length === 0 && !ended && (
-              <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4 animate-fade-in">
-                <div className="p-6 rounded-3xl bg-gradient-to-br from-muted/30 to-muted/10 backdrop-blur-sm">
-                  <MessageCircle className="w-16 h-16 text-muted-foreground/40" />
-                </div>
-                <p className="text-muted-foreground/60 text-base max-w-md leading-relaxed">
-                  Your conversation with Jordan will appear here. Take your time, there's no rush.
-                </p>
-              </div>
+          <div className="flex items-center gap-2">
+            {!ended && history.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={endSession}>
+                End Session
+              </Button>
             )}
-            
+            {history.length > 0 && (
+              <Button variant="ghost" size="icon" onClick={reset} title="Start Over">
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </header>
+
+        {/* Messages Area */}
+        <ScrollArea className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
             {history.map((t, i) => (
-              <div key={i} className="space-y-3">
+              <div key={i} className="space-y-3 animate-slide-in">
                 <MessageBubble role={t.role} content={t.content} />
                 {t.coachTip && (
                   <CoachTip content={t.coachTip} isCrisis={t.coachTip.includes("988")} />
@@ -459,141 +377,76 @@ export default function App() {
                 content="Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like 'What brings you here today?'" 
               />
             )}
-          </CardContent>
-        </Card>
-        </div>
+            
+            {ended && (
+              <div className="mt-8 space-y-6 animate-fade-in">
+                <SessionSummary
+                  summary={{
+                    practiced: summary.practiced,
+                    improve: summary.wentWell,
+                    sampleLine: summary.sampleLine || getSampleLine()
+                  }}
+                  onReset={reset}
+                  sessionId={sessionId}
+                  sessionCopied={sessionCopied}
+                  onCopySessionId={copySessionId}
+                />
+                
+                {sessionId && (
+                  <div className="p-6 rounded-2xl border-2 border-accent/30 bg-gradient-to-br from-card to-accent/5 warm-shadow">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20">
+                        <span className="text-2xl">📋</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Help Us Improve</h3>
+                        <p className="text-sm text-muted-foreground">Your feedback makes Jordan better</p>
+                      </div>
+                    </div>
+                    <a
+                      href="https://docs.google.com/forms/d/e/1FAIpQLSd4iiR_gPEfwsK4_ZrGGFzCx-g3xILDQwY47sJ2MA9WAt9brA/viewform?usp=header"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button className="w-full bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90">
+                        Open Feedback Form →
+                      </Button>
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
 
         {/* Input Area */}
         {!ended && history.length > 0 && (
-          <Card className={`border-0 warm-shadow backdrop-blur-sm bg-card/95 transition-all duration-500 ${!busy && !input.trim() ? 'soft-glow' : ''}`}>
-            <CardContent className="p-5 space-y-4">
-              {/* Progress Indicator */}
-              <div className="flex items-center justify-between text-sm text-muted-foreground px-2">
-                <div className="flex items-center gap-2.5">
-                  <MessageCircle className="w-4 h-4 text-primary/60" />
-                  <span className="font-medium">{Math.floor(history.length / 2)} exchanges</span>
-                </div>
-                <div className="flex gap-1.5">
-                  {Array.from({ length: Math.min(5, Math.ceil(history.length / 4)) }).map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-primary to-accent opacity-50 animate-pulse" 
-                      style={{ animationDelay: `${i * 0.3}s`, animationDuration: '2s' }}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <Input 
-                  ref={inputRef}
-                  className="flex-1 h-14 bg-background/50 border-border/50 transition-all focus:border-primary/50 focus:bg-background text-base px-4 rounded-xl" 
-                  placeholder="Type your message..." 
-                  value={input} 
-                  onChange={e => setInput(e.target.value)} 
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(); }}
-                  disabled={busy}
-                />
-                <Button 
-                  onClick={send} 
-                  disabled={busy || !input.trim()} 
-                  size="lg" 
-                  className="h-14 px-7 shadow-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 hover:scale-105 transition-all rounded-xl"
-                >
-                  <Send className="w-5 h-5" />
-                </Button>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={endSession} 
-                  disabled={history.length === 0} 
-                  size="sm"
-                  className="flex-1 h-11 hover:bg-muted/50"
-                >
-                  End Session
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  onClick={reset} 
-                  size="sm"
-                  className="flex-1 h-11 hover:bg-muted/30"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Summary */}
-        {ended && (
-          <SessionSummary
-            summary={{
-              practiced: summary.practiced,
-              improve: summary.wentWell,
-              sampleLine: summary.sampleLine || getSampleLine()
-            }}
-            onReset={reset}
-            sessionId={sessionId}
-            sessionCopied={sessionCopied}
-            onCopySessionId={copySessionId}
-          />
-        )}
-
-        {/* Google Form Feedback - Only show when session ended */}
-        {ended && sessionId && (
-          <Card className="border-2 border-accent/30 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-accent/5 animate-fade-in overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5 pointer-events-none"></div>
-            
-            <CardHeader className="relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-accent/20 to-primary/20">
-                  <span className="text-2xl">📋</span>
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-semibold">Help Us Improve</CardTitle>
-                  <CardDescription className="mt-1">
-                    Your feedback makes Jordan better for everyone
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-5 relative z-10">
-              <a
-                href="https://docs.google.com/forms/d/e/1FAIpQLSd4iiR_gPEfwsK4_ZrGGFzCx-g3xILDQwY47sJ2MA9WAt9brA/viewform?usp=header"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
+          <div className="border-t border-border/40 bg-card/80 backdrop-blur-md px-4 py-4 shrink-0">
+            <div className="max-w-4xl mx-auto flex gap-3">
+              <Input
+                ref={inputRef}
+                className="flex-1 h-12 bg-background border-border/50 transition-all focus:border-primary/50 text-base px-4"
+                placeholder="Type your message..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) send(); }}
+                disabled={busy}
+              />
+              <Button
+                onClick={send}
+                disabled={busy || !input.trim()}
+                size="lg"
+                className="h-12 px-6 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
               >
-                <Button 
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]" 
-                  size="lg"
-                >
-                  Open Feedback Form →
-                </Button>
-              </a>
-
-              <p className="text-sm text-muted-foreground text-center">
-                Anonymous responses help us identify issues and improve the experience
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Utilities */}
-        {history.length > 0 && (
-          <div className="flex justify-center pb-8">
-            <Button variant="ghost" size="sm" onClick={() => copyTranscript(history)} className="text-muted-foreground hover:text-foreground">
-              <span className="mr-2">📋</span> Copy transcript
-            </Button>
+                <Send className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -612,15 +465,6 @@ function shouldStallNudge(history: Turn[]) {
   if (userOnly.length < 2) return false;
   const neutralish = (s:string)=> s.split(" ").length < 8 && !/[?]/.test(s);
   return userOnly.slice(-2).every(neutralish);
-}
-
-function tooShortOrLong(s: string) {
-  const w = s.trim().split(/\s+/).length; return w < 3 || w > 30;
-}
-
-function copyTranscript(history: Turn[]) {
-  const text = history.map(h => `${h.role.toUpperCase()}: ${h.content}${h.coachTip?`\n[Coach: ${h.coachTip}]`:""}`).join("\n\n");
-  navigator.clipboard.writeText(text);
 }
 
 function makeSummary(history: Turn[]) {

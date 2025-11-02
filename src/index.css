@@ -136,6 +136,17 @@ All colors MUST be HSL.
     }
   }
 
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   @keyframes pulse-soft {
     0%, 100% {
       opacity: 1;
@@ -143,5 +154,9 @@ All colors MUST be HSL.
     50% {
       opacity: 0.7;
     }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
   }
 }

@@ -7,22 +7,22 @@ interface CoachTipProps {
 
 export const CoachTip = ({ content, isCrisis = false }: CoachTipProps) => {
   return (
-    <div className="flex justify-center px-4 animate-fade-in">
+    <div className="flex justify-center animate-fade-in">
       <div 
         className={`
-          max-w-2xl w-full px-4 py-3 rounded-xl border-2
+          max-w-xl px-5 py-4 rounded-2xl border
           ${isCrisis 
             ? "bg-destructive/10 border-destructive/30 text-destructive-foreground" 
-            : "bg-accent/20 border-accent/40 text-foreground"
+            : "bg-accent/10 border-accent/30 text-foreground"
           }
-          backdrop-blur-sm transition-all duration-300 hover:scale-[1.01]
+          backdrop-blur-sm shadow-sm
         `}
       >
         <div className="flex items-start gap-3">
-          <div className={`shrink-0 mt-0.5 ${isCrisis ? "text-destructive" : "text-accent"}`}>
+          <div className={`shrink-0 mt-1 ${isCrisis ? "text-destructive" : "text-accent"}`}>
             {isCrisis ? <AlertCircle className="w-5 h-5" /> : <Lightbulb className="w-5 h-5" />}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-wide opacity-70">
               {isCrisis ? "Important Notice" : "Coach Tip"}
             </p>

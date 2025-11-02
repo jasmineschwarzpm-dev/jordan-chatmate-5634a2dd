@@ -10,20 +10,20 @@ export const MessageBubble = ({ role, content }: MessageBubbleProps) => {
   const isUser = role === "user";
 
   return (
-    <div className={`flex gap-3 animate-fade-in ${isUser ? "flex-row-reverse" : "flex-row"} group`}>
+    <div className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"} group`}>
       {/* Avatar */}
       {!isUser && (
-        <Avatar className="h-10 w-10 border-2 border-primary/20 bg-gradient-to-br from-primary/30 to-accent/30 shrink-0">
-          <AvatarFallback className="bg-transparent text-primary font-semibold text-lg">
+        <Avatar className="h-12 w-12 border-2 border-primary/20 bg-gradient-to-br from-primary/30 to-accent/30 shrink-0">
+          <AvatarFallback className="bg-transparent text-primary font-semibold text-xl">
             J
           </AvatarFallback>
         </Avatar>
       )}
       
       {isUser && (
-        <Avatar className="h-10 w-10 border-2 border-muted bg-muted shrink-0">
+        <Avatar className="h-12 w-12 border-2 border-muted bg-muted shrink-0">
           <AvatarFallback className="bg-transparent">
-            <User className="w-5 h-5 text-muted-foreground" />
+            <User className="w-6 h-6 text-muted-foreground" />
           </AvatarFallback>
         </Avatar>
       )}
@@ -31,15 +31,15 @@ export const MessageBubble = ({ role, content }: MessageBubbleProps) => {
       {/* Message Content */}
       <div
         className={`
-          max-w-[75%] sm:max-w-[65%] px-4 py-3 rounded-2xl
+          max-w-[75%] sm:max-w-[70%] px-5 py-4 rounded-2xl
           ${isUser 
-            ? "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-tr-sm" 
-            : "bg-card border border-border/50 text-card-foreground rounded-tl-sm warm-shadow"
+            ? "bg-gradient-to-br from-primary to-accent text-primary-foreground rounded-tr-md" 
+            : "bg-card border border-border/50 text-card-foreground rounded-tl-md warm-shadow"
           }
-          transition-all duration-200 hover:scale-[1.02]
+          transition-all duration-200
         `}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+        <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
           {content}
         </p>
       </div>
