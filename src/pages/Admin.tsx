@@ -423,6 +423,38 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Grant Admin Access Section */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Grant Admin Access
+            </CardTitle>
+            <CardDescription>
+              Add admin privileges to an existing user by entering their email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="katie.sammons@gmail.com"
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && grantAdminRole()}
+                className="max-w-md"
+              />
+              <Button onClick={grantAdminRole}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Grant Access
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Note: The user must have already signed up at /admin-login before you can grant them admin access.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Summary Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="hover:shadow-md transition-shadow">
