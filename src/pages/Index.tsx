@@ -327,39 +327,44 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/10 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-3 pt-4 animate-fade-in">
-          <div className="flex items-center justify-center">
-            <div className="p-3 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 soft-glow">
-              <MessageCircle className="w-10 h-10 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/8 py-8 md:py-12">
+      <div className="container max-w-4xl mx-auto px-4 space-y-6">
+        
+        {/* Welcome Header - Only show before conversation starts */}
+        {history.length === 0 && !ended && (
+          <div className="text-center space-y-4 animate-fade-in px-4 mb-8">
+            <div className="inline-block p-4 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur-sm mb-2">
+              <MessageCircle className="w-12 h-12 text-primary" />
             </div>
+            <h1 className="text-4xl md:text-5xl font-semibold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              Practice with Jordan
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
+              A safe space to build confidence in everyday conversations. No pressure, just practice.
+            </p>
           </div>
-          <h1 className="text-4xl font-medium tracking-tight text-foreground">Jordan</h1>
-          <p className="text-sm text-muted-foreground">Practice conversations in a safe space</p>
-        </div>
+        )}
 
         {/* Setup Card */}
         {history.length === 0 && !ended && (
-          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-card/80 animate-fade-in overflow-hidden relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none"></div>
-            <CardHeader className="space-y-3 relative z-10">
-              <CardTitle className="text-2xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Let's Get Started
+          <Card className="border-0 warm-shadow backdrop-blur-sm bg-gradient-to-br from-card via-card to-primary/5 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-60 pointer-events-none"></div>
+            <CardHeader className="relative z-10 border-b border-border/30 pb-6">
+              <CardTitle className="text-2xl font-semibold">
+                Choose Your Scenario
               </CardTitle>
-              <CardDescription className="text-sm leading-relaxed">
-                Welcome! Jordan helps you practice everyday conversations in a low-pressure space. Remember, this is just for practice—not therapy or advice. If you're in the US and need support, call or text 988.
+              <CardDescription className="text-base mt-2 leading-relaxed">
+                Welcome! Jordan helps you practice everyday conversations in a low-pressure space. This is for practice—not therapy or advice. If you're in the US and need support, call or text 988.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 relative z-10">
+            <CardContent className="space-y-6 relative z-10 pt-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
-                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-lg">📍</span> Scene
+                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
+                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-xl">📍</span> Scene
                   </Label>
                   <Select value={setup.scene} onValueChange={(v) => setSetup(s => ({ ...s, scene: v as Scene }))}>
-                    <SelectTrigger className="bg-background border-border/50 h-11 shadow-sm">
+                    <SelectTrigger className="bg-background border-border/50 h-12 shadow-sm hover:border-primary/30 transition-colors">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -367,12 +372,12 @@ export default function App() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
-                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-lg">👤</span> Jordan's Pronouns
+                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
+                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-xl">👤</span> Jordan's Pronouns
                   </Label>
                   <Select value={setup.interlocutor} onValueChange={(v) => setSetup(s => ({ ...s, interlocutor: v as any }))}>
-                    <SelectTrigger className="bg-background border-border/50 h-11 shadow-sm">
+                    <SelectTrigger className="bg-background border-border/50 h-12 shadow-sm hover:border-primary/30 transition-colors">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -383,37 +388,37 @@ export default function App() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 p-4 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow">
-                  <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <span className="text-lg">📮</span> ZIP (Optional)
+                <div className="space-y-3 p-5 rounded-xl bg-gradient-to-br from-background/80 to-background/40 border border-border/30 warm-shadow transition-all hover:scale-[1.02]">
+                  <Label className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <span className="text-xl">📮</span> ZIP (Optional)
                   </Label>
                   <Input 
-                    className="bg-background border-border/50 shadow-sm h-11" 
+                    className="bg-background border-border/50 shadow-sm h-12 hover:border-primary/30 transition-colors" 
                     placeholder="e.g., 80550" 
                     value={setup.zip || ""} 
                     onChange={e => setSetup(s => ({ ...s, zip: e.target.value }))}
                   />
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center pt-3 p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center pt-6 p-5 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+                <div className="flex items-start gap-3">
                   <Checkbox 
                     id="age-confirm" 
                     checked={setup.ageConfirmed} 
                     onCheckedChange={(checked) => setSetup(s => ({ ...s, ageConfirmed: checked as boolean }))}
-                    className="border-2"
+                    className="border-2 mt-1"
                   />
-                  <Label htmlFor="age-confirm" className="text-sm font-medium cursor-pointer">
+                  <Label htmlFor="age-confirm" className="text-base font-medium cursor-pointer leading-relaxed">
                     I'm 18 years or older and ready to practice
                   </Label>
                 </div>
                 <Button 
                   disabled={!canStart} 
                   onClick={handleStartConversation}
-                  className="ml-auto shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-all hover:scale-105 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                   size="lg"
                 >
-                  Start Conversation
+                  Start Conversation →
                 </Button>
               </div>
             </CardContent>
@@ -422,14 +427,19 @@ export default function App() {
 
         {/* Chat Transcript */}
         <div ref={chatRef}>
-        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/90 min-h-[450px] relative overflow-hidden">
+        <Card className="border-0 warm-shadow backdrop-blur-sm bg-card/95 min-h-[500px] relative overflow-hidden">
           {/* Subtle ambient animation */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50 animate-pulse" style={{ animationDuration: "4s" }}></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-accent/3 opacity-60 animate-pulse" style={{ animationDuration: "6s" }}></div>
           
-          <CardContent className="p-6 md:p-8 space-y-5 relative z-10">
+          <CardContent className="p-6 md:p-10 space-y-6 relative z-10">
             {history.length === 0 && !ended && (
-              <div className="flex items-center justify-center h-[350px] text-muted-foreground/50 text-sm">
-                Your conversation will appear here...
+              <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4 animate-fade-in">
+                <div className="p-6 rounded-3xl bg-gradient-to-br from-muted/30 to-muted/10 backdrop-blur-sm">
+                  <MessageCircle className="w-16 h-16 text-muted-foreground/40" />
+                </div>
+                <p className="text-muted-foreground/60 text-base max-w-md leading-relaxed">
+                  Your conversation with Jordan will appear here. Take your time, there's no rush.
+                </p>
               </div>
             )}
             
@@ -455,25 +465,29 @@ export default function App() {
 
         {/* Input Area */}
         {!ended && history.length > 0 && (
-          <Card className={`border-0 warm-shadow backdrop-blur-sm bg-card/90 transition-all ${!busy && !input.trim() ? 'soft-glow' : ''}`}>
-            <CardContent className="p-4 space-y-3">
+          <Card className={`border-0 warm-shadow backdrop-blur-sm bg-card/95 transition-all duration-500 ${!busy && !input.trim() ? 'soft-glow' : ''}`}>
+            <CardContent className="p-5 space-y-4">
               {/* Progress Indicator */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>{Math.floor(history.length / 2)} exchanges</span>
+              <div className="flex items-center justify-between text-sm text-muted-foreground px-2">
+                <div className="flex items-center gap-2.5">
+                  <MessageCircle className="w-4 h-4 text-primary/60" />
+                  <span className="font-medium">{Math.floor(history.length / 2)} exchanges</span>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5">
                   {Array.from({ length: Math.min(5, Math.ceil(history.length / 4)) }).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}></div>
+                    <div 
+                      key={i} 
+                      className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-primary to-accent opacity-50 animate-pulse" 
+                      style={{ animationDelay: `${i * 0.3}s`, animationDuration: '2s' }}
+                    ></div>
                   ))}
                 </div>
               </div>
               
-              <div className="flex gap-2.5">
+              <div className="flex gap-3">
                 <Input 
                   ref={inputRef}
-                  className="flex-1 h-12 bg-background/50 border-border/50 transition-all focus:border-primary/50 text-base" 
+                  className="flex-1 h-14 bg-background/50 border-border/50 transition-all focus:border-primary/50 focus:bg-background text-base px-4 rounded-xl" 
                   placeholder="Type your message..." 
                   value={input} 
                   onChange={e => setInput(e.target.value)} 
@@ -484,19 +498,19 @@ export default function App() {
                   onClick={send} 
                   disabled={busy || !input.trim()} 
                   size="lg" 
-                  className="h-12 px-6 shadow-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+                  className="h-14 px-7 shadow-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 hover:scale-105 transition-all rounded-xl"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </Button>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button 
                   variant="outline" 
                   onClick={endSession} 
                   disabled={history.length === 0} 
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 h-11 hover:bg-muted/50"
                 >
                   End Session
                 </Button>
@@ -504,7 +518,7 @@ export default function App() {
                   variant="ghost" 
                   onClick={reset} 
                   size="sm"
-                  className="flex-1"
+                  className="flex-1 h-11 hover:bg-muted/30"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Reset
