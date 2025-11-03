@@ -209,28 +209,48 @@ export default function App() {
     // 3) Determine coach tip BEFORE calling LLM (attach to user message)
     let coachTip: string | undefined;
     if (!cooldown) {
+      const wordCount = userText.trim().split(/\s+/).length;
+      const hasQuestion = /\?/.test(userText);
+      const userMessages = [...history, { role: "user" as const, content: userText }].filter(h => h.role === "user");
+      const lastThreeUserMsgs = userMessages.slice(-3);
+      const recentJordanMsgs = history.slice(-2).filter(h => h.role === "assistant");
+
+      // Priority 1: Safety
       if (main.kind === "PII") {
         coachTip = `Your message contained personal contact info (${main.reason}). Avoid sharing emails, phone numbers, or addresses with strangers. Keep details general.`;
       } else if (main.kind === "CONTROVERSIAL") {
         const topic = triggers.find(t => t.kind === "CONTROVERSIAL")?.reason || "topic";
         coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
-      } else if (shouldStallNudge(history)) {
+      }
+      // Priority 2: Gen Z-specific conversation patterns
+      else if (history.length >= 3 && lastThreeUserMsgs.every(msg => !hasQuestion && msg.content)) {
+        // No reciprocity - answering without asking back (common Gen Z issue)
+        coachTip = "You've shared a lot, which is great! Good conversationalists ask questions back. What could you ask Jordan?";
+      } else if (recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
+        // Jordan asked 2 questions in a row - signal interview mode
+        coachTip = "Jordan asked about you twice. To balance the conversation, try asking Jordan something related to what they shared!";
+      } else if (history.length >= 8 && history.length <= 10) {
+        // Milestone coaching: natural wrap-up
+        coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
+      }
+      // Priority 3: Basic flow issues
+      else if (shouldStallNudge(history)) {
         coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
-      } else {
-        const wordCount = userText.trim().split(/\s+/).length;
-        const hasQuestion = /\?/.test(userText);
-        
-        // Only warn about length if it's problematic for conversation flow
-        if (wordCount < 5 && !hasQuestion) {
-          coachTip = "Your message was very brief. Try elaborating a bit and asking a question to keep the conversation going.";
-        } else if (wordCount > 40 && !hasQuestion) {
-          coachTip = "That's quite long without a question. In small talk, keep it concise and include a question to invite response.";
-        }
+      } else if (wordCount < 5 && !hasQuestion && history.length > 1) {
+        // Overly brief (Gen Z tendency: fear of saying too much)
+        coachTip = "Your message was very brief. It's okay to share a bit more! Add a sentence or two, then ask a question.";
+      } else if (wordCount > 50 && !hasQuestion && history.length > 1) {
+        // Long monologue without reciprocity (Gen Z tendency: oversharing when comfortable)
+        coachTip = "That's a thoughtful answer! To keep it conversational, try wrapping up with a question for Jordan.";
+      } else if (history.length === 1 && wordCount > 60) {
+        // First message overshare (Gen Z tendency: anxiety-driven over-explanation)
+        coachTip = "Great detail, but small talk usually starts shorter. Try keeping openers to 2-3 sentences, then see where it goes!";
       }
     }
 
-    // 4) Build messages for LLM
-    const sys = buildSystemPrompt(setup.scene, setup.interlocutor);
+    // 4) Build messages for LLM (pass exchange count for phase awareness)
+    const exchangeCount = history.length;
+    const sys = buildSystemPrompt(setup.scene, setup.interlocutor, exchangeCount);
     const chatHistory = [...history, { role: "user" as const, content: userText }].map(t => ({ role: t.role, content: t.content }));
     const messages: ChatMessage[] = makeMessages(sys, chatHistory);
 
@@ -471,12 +491,37 @@ function shouldStallNudge(history: Turn[]) {
 }
 
 function makeSummary(history: Turn[]) {
-  const qCount = history.filter(h=>h.role==='user' && /\?/.test(h.content)).length;
-  const practiced = ["opener","small talk"]; if (history.length>6) practiced.push("exit");
+  const userMsgs = history.filter(h => h.role === 'user');
+  const jordanMsgs = history.filter(h => h.role === 'assistant');
+  const userQCount = userMsgs.filter(msg => /\?/.test(msg.content)).length;
+  const jordanQCount = jordanMsgs.filter(msg => /\?/.test(msg.content)).length;
+  
+  const practiced = ["opener", "small talk"];
+  if (history.length > 6) practiced.push("multi-turn conversation");
+  if (history.length >= 10) practiced.push("natural closure");
+  
   const wentWell = [] as string[];
-  if (qCount>=2) wentWell.push("asked open questions");
-  if (history.length>=6) wentWell.push("kept momentum");
-  const nextStep = qCount>=2?"try ending politely by turn 8":"add an open question by turn 3";
+  const reciprocityScore = userMsgs.length > 0 ? userQCount / userMsgs.length : 0;
+  
+  if (userQCount >= 2) wentWell.push("asked open questions");
+  if (reciprocityScore >= 0.4) wentWell.push("showed curiosity");
+  if (history.length >= 6) wentWell.push("kept momentum");
+  
+  // Analyze balance
+  const balanceIssue = jordanQCount > userQCount * 2;
+  const reciprocityIssue = userQCount === 0 && userMsgs.length >= 3;
+  
+  let nextStep = "";
+  if (reciprocityIssue) {
+    nextStep = "Practice asking 1-2 questions to show interest in the other person";
+  } else if (balanceIssue) {
+    nextStep = "Try balancing listening and sharing — conversation should feel 50/50";
+  } else if (userQCount < 2) {
+    nextStep = "Add an open-ended question in your next practice to invite response";
+  } else {
+    nextStep = "Practice wrapping up naturally after 8-10 exchanges";
+  }
+  
   const sampleText = getSampleLine();
   return { practiced, wentWell, nextStep, sampleLine: sampleText };
 }
