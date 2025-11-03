@@ -217,6 +217,13 @@ export default function App() {
       const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
       const isGreetingOnly = greetingOnlyPattern.test(userText.toLowerCase()) && wordCount < 3;
 
+      // Helper: Check if a message is a "short answer" (1-3 words or single brief sentence)
+      const isShortAnswer = (msg: { content: string }) => {
+        const words = msg.content.trim().split(/\s+/).length;
+        const sentences = msg.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        return words <= 3 || (sentences.length === 1 && words <= 8);
+      };
+
       // Priority 1: Safety
       if (main.kind === "PII") {
         coachTip = `Your message contained personal contact info (${main.reason}). Avoid sharing emails, phone numbers, or addresses with strangers. Keep details general.`;
@@ -258,6 +265,18 @@ export default function App() {
       } else if (history.length >= 8 && history.length <= 10) {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
+      }
+      // Priority 3.5: Multiple short answers in a row (signals unwillingness to engage)
+      else if (userMessages.length >= 2 && !isGreetingOnly) {
+        const lastTwoUserMsgs = userMessages.slice(-2);
+        const allShortAnswers = lastTwoUserMsgs.every(msg => {
+          const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
+          return !msgIsGreeting && isShortAnswer(msg);
+        });
+        
+        if (allShortAnswers) {
+          coachTip = "Your last few answers have been pretty short. In real conversations, brief responses can signal disinterest. Try expanding a bit — share why, add context, or explain your thinking!";
+        }
       }
       // Priority 4: Basic flow issues
       else if (shouldStallNudge(history)) {
