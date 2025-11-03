@@ -214,6 +214,8 @@ export default function App() {
       const userMessages = [...history, { role: "user" as const, content: userText }].filter(h => h.role === "user");
       const lastThreeUserMsgs = userMessages.slice(-3);
       const recentJordanMsgs = history.slice(-2).filter(h => h.role === "assistant");
+      const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
+      const isGreetingOnly = greetingOnlyPattern.test(userText.toLowerCase()) && wordCount < 3;
 
       // Priority 1: Safety
       if (main.kind === "PII") {
@@ -222,25 +224,17 @@ export default function App() {
         const topic = triggers.find(t => t.kind === "CONTROVERSIAL")?.reason || "topic";
         coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
       }
-      // Priority 1.5: First message - greeting-only without answering Jordan's question
-      else if (history.length === 1 && wordCount < 10) {
-        const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
-        if (greetingOnlyPattern.test(userText.toLowerCase())) {
+      // Priority 1.5: Greeting-only responses (any message, not just first)
+      else if (isGreetingOnly && history.length > 0) {
+        const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
+        const jordanAskedQuestion = /\?/.test(lastJordan);
+        if (jordanAskedQuestion) {
           coachTip = "Great to say hi! But Jordan asked you a question. Try answering it to keep the conversation flowing naturally.";
+        } else {
+          coachTip = "Saying hi is good! But try adding something more to keep the conversation going. Share a quick thought or ask Jordan a question.";
         }
       }
-      // Priority 2: Gen Z-specific conversation patterns
-      else if (history.length >= 3 && lastThreeUserMsgs.every(msg => !hasQuestion && msg.content)) {
-        // No reciprocity - answering without asking back (common Gen Z issue)
-        coachTip = "You've shared a lot, which is great! Good conversationalists ask questions back. What could you ask Jordan?";
-      } else if (recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
-        // Jordan asked 2 questions in a row - signal interview mode
-        coachTip = "Jordan asked about you twice. To balance the conversation, try asking Jordan something related to what they shared!";
-      } else if (history.length >= 8 && history.length <= 10) {
-        // Milestone coaching: natural wrap-up
-        coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
-      }
-      // Priority 2.5: Uncertainty/stuck expressions
+      // Priority 2: Uncertainty/stuck expressions
       else if (/\b(i don't know|idk|not sure|no clue|can't think|i'm stuck|don't know what)\b/i.test(userText.toLowerCase())) {
         const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
         const jordanAskedQuestion = /\?/.test(lastJordan);
@@ -251,10 +245,24 @@ export default function App() {
           coachTip = "Not sure what to say? Try: 1) Ask a follow-up question ('How'd you get into that?'), 2) Share something related ('I've been curious about that'), or 3) Make a connection ('That reminds me of...')";
         }
       }
-      // Priority 3: Basic flow issues
+      // Priority 3: Gen Z-specific conversation patterns (exclude greeting-only messages)
+      else if (history.length >= 3 && !isGreetingOnly && lastThreeUserMsgs.every(msg => {
+        const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
+        return !msgIsGreeting && !/\?/.test(msg.content) && msg.content;
+      })) {
+        // No reciprocity - answering without asking back (common Gen Z issue)
+        coachTip = "You've shared a lot, which is great! Good conversationalists ask questions back. What could you ask Jordan?";
+      } else if (recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
+        // Jordan asked 2 questions in a row - signal interview mode
+        coachTip = "Jordan asked about you twice. To balance the conversation, try asking Jordan something related to what they shared!";
+      } else if (history.length >= 8 && history.length <= 10) {
+        // Milestone coaching: natural wrap-up
+        coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
+      }
+      // Priority 4: Basic flow issues
       else if (shouldStallNudge(history)) {
         coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
-      } else if (wordCount < 5 && !hasQuestion && history.length > 1) {
+      } else if (wordCount < 5 && !hasQuestion && !isGreetingOnly && history.length > 1) {
         // Overly brief (Gen Z tendency: fear of saying too much)
         coachTip = "Your message was very brief. It's okay to share a bit more! Add a sentence or two, then ask a question.";
       } else if (wordCount > 50 && !hasQuestion && history.length > 1) {
