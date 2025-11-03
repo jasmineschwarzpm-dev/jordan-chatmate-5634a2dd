@@ -275,7 +275,7 @@ export default function App() {
         });
         
         if (allShortAnswers) {
-          coachTip = "Your last few answers have been pretty short. In real conversations, brief responses can signal disinterest. Try expanding a bit — share why, add context, or explain your thinking!";
+          coachTip = "Your answers have been very brief. Short responses communicate disinterest or reluctance to engage. Try expanding — explain why you think that, add details, or share a quick example to show you're interested in the conversation!";
         }
       }
       // Priority 4: Basic flow issues
