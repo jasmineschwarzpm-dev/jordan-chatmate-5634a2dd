@@ -61,6 +61,8 @@ export default function Admin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const buildTag = 'admin-ui-2025-11-03T00:30Z';
+  console.log('Admin build:', buildTag);
 
   // Check admin access
   useEffect(() => {
@@ -153,21 +155,10 @@ export default function Admin() {
     if (!user) return;
 
     try {
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        // email is optional in bootstrap mode, but sending helps consistency
-        body: JSON.stringify({ email: user.email }),
+      const { data, error } = await supabase.functions.invoke('grant-admin', {
+        body: { email: user.email },
       });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to grant admin access');
-      }
+      if (error) throw error;
 
       toast({
         title: "Admin access granted",
@@ -177,7 +168,7 @@ export default function Admin() {
     } catch (error: any) {
       toast({
         title: "Error granting admin access",
-        description: error.message,
+        description: error.message || 'Failed to grant admin access',
         variant: "destructive",
       });
     }
@@ -263,21 +254,11 @@ export default function Admin() {
     });
 
     try {
-      // Call edge function to grant admin role by email
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-admin`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({ email: newAdminEmail.trim() }),
+      const { data, error } = await supabase.functions.invoke('grant-admin', {
+        body: { email: newAdminEmail.trim() },
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to grant admin access');
-      }
+      if (error) throw error;
 
       toast({
         title: "Admin access granted",
@@ -289,7 +270,7 @@ export default function Admin() {
     } catch (err: any) {
       toast({
         title: "Error granting admin access",
-        description: err.message,
+        description: err.message || 'Failed to grant admin access',
         variant: "destructive",
       });
     }
@@ -417,8 +398,12 @@ export default function Admin() {
             <p className="text-sm text-muted-foreground mt-1">
               Review test sessions and moderation logs
             </p>
+            <p className="text-[10px] text-muted-foreground">Build: {buildTag}</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => document.getElementById('admin-tools')?.scrollIntoView({ behavior: 'smooth' })}>
+              Manage Admins
+            </Button>
             <Button onClick={() => window.location.href = "/"} variant="outline">
               Back to App
             </Button>
@@ -436,7 +421,7 @@ export default function Admin() {
         </div>
 
         {/* Grant Admin Access Section */}
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+        <Card id="admin-tools" className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
