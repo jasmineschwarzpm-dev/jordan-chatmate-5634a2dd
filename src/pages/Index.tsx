@@ -222,6 +222,13 @@ export default function App() {
         const topic = triggers.find(t => t.kind === "CONTROVERSIAL")?.reason || "topic";
         coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
       }
+      // Priority 1.5: First message - greeting-only without answering Jordan's question
+      else if (history.length === 1 && wordCount < 10) {
+        const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
+        if (greetingOnlyPattern.test(userText.toLowerCase())) {
+          coachTip = "Great to say hi! But Jordan asked you a question. Try answering it to keep the conversation flowing naturally.";
+        }
+      }
       // Priority 2: Gen Z-specific conversation patterns
       else if (history.length >= 3 && lastThreeUserMsgs.every(msg => !hasQuestion && msg.content)) {
         // No reciprocity - answering without asking back (common Gen Z issue)
@@ -232,6 +239,17 @@ export default function App() {
       } else if (history.length >= 8 && history.length <= 10) {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
+      }
+      // Priority 2.5: Uncertainty/stuck expressions
+      else if (/\b(i don't know|idk|not sure|no clue|can't think|i'm stuck|don't know what)\b/i.test(userText.toLowerCase())) {
+        const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
+        const jordanAskedQuestion = /\?/.test(lastJordan);
+        
+        if (jordanAskedQuestion) {
+          coachTip = "It's okay to not have a perfect answer! Try: 1) Ask a related question back, 2) Share a quick thought ('That's interesting...'), or 3) Keep it simple: 'Still figuring that out — what about you?'";
+        } else {
+          coachTip = "Not sure what to say? Try: 1) Ask a follow-up question ('How'd you get into that?'), 2) Share something related ('I've been curious about that'), or 3) Make a connection ('That reminds me of...')";
+        }
       }
       // Priority 3: Basic flow issues
       else if (shouldStallNudge(history)) {
