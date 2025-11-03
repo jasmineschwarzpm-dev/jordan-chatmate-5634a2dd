@@ -152,22 +152,34 @@ export default function Admin() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("user_roles")
-      .insert({ user_id: user.id, role: "admin" });
-
-    if (error) {
-      toast({
-        title: "Error granting admin access",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/grant-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        // email is optional in bootstrap mode, but sending helps consistency
+        body: JSON.stringify({ email: user.email }),
       });
-    } else {
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to grant admin access');
+      }
+
       toast({
         title: "Admin access granted",
         description: "You now have admin privileges.",
       });
       setIsAdmin(true);
+    } catch (error: any) {
+      toast({
+        title: "Error granting admin access",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   }
 

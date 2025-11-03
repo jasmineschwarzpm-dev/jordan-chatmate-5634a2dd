@@ -31,36 +31,60 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if requesting user is admin
-    const { data: adminCheck } = await supabaseClient
+    // Determine if any admin already exists
+    const { data: existingAdmins } = await supabaseClient
       .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
+      .select('id')
       .eq('role', 'admin')
-      .maybeSingle();
+      .limit(1);
 
-    if (!adminCheck) {
-      throw new Error('Only admins can grant admin access');
+    const adminExists = Array.isArray(existingAdmins) && existingAdmins.length > 0;
+
+    // If admins exist, requester must be an admin
+    if (adminExists) {
+      const { data: adminCheck } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (!adminCheck) {
+        throw new Error('Only admins can grant admin access');
+      }
     }
 
-    // Get the email from request body
-    const { email } = await req.json();
-
-    if (!email) {
-      throw new Error('Email is required');
+    // Get the email from request body (optional during bootstrap)
+    let email: string | undefined = undefined;
+    try {
+      const body = await req.json();
+      email = body?.email;
+    } catch (_) {
+      // no-op
     }
 
-    // Find the user by email
-    const { data: userData, error: listError } = await supabaseClient.auth.admin.listUsers();
+    let targetUser: { id: string; email?: string | null } | undefined;
 
-    if (listError) {
-      throw listError;
-    }
-
-    const targetUser = userData.users.find(u => u.email === email);
-
-    if (!targetUser) {
-      throw new Error('No user with this email has signed up yet');
+    if (adminExists) {
+      // Admin path: email is required and can be any existing user
+      if (!email) {
+        throw new Error('Email is required');
+      }
+      const { data: userData, error: listError } = await supabaseClient.auth.admin.listUsers();
+      if (listError) {
+        throw listError;
+      }
+      const found = userData.users.find(u => u.email === email);
+      if (!found) {
+        throw new Error('No user with this email has signed up yet');
+      }
+      targetUser = { id: found.id, email: found.email };
+    } else {
+      // Bootstrap path: no admins exist yet — requester can grant admin to self only
+      if (email && email !== user.email) {
+        throw new Error('When bootstrapping, you can only grant admin to yourself');
+      }
+      targetUser = { id: user.id, email: user.email };
     }
 
     // Grant admin role
