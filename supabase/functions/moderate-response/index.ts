@@ -75,12 +75,20 @@ Examples:
     }
 
     const aiData = await aiResponse.json();
-    const contentText = aiData.choices?.[0]?.message?.content || "{}";
+    let contentText = aiData.choices?.[0]?.message?.content || "{}";
+    
+    // Strip markdown code blocks if present
+    contentText = contentText.trim();
+    if (contentText.startsWith("```json")) {
+      contentText = contentText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    } else if (contentText.startsWith("```")) {
+      contentText = contentText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    }
     
     // Parse JSON response
     let moderationResult;
     try {
-      moderationResult = JSON.parse(contentText);
+      moderationResult = JSON.parse(contentText.trim());
     } catch (parseError) {
       console.error("Failed to parse moderation response:", contentText);
       // Fail-safe: If can't parse, assume unsafe
