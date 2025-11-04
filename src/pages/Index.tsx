@@ -266,16 +266,16 @@ export default function App() {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
       }
-      // Priority 3.5: Multiple short answers in a row (signals unwillingness to engage)
-      else if (userMessages.length >= 2 && !isGreetingOnly) {
-        const lastTwoUserMsgs = userMessages.slice(-2);
-        const allShortAnswers = lastTwoUserMsgs.every(msg => {
+      // Priority 3.5: Multiple short answers in a row (signals disengagement - Jordan will wind down)
+      else if (userMessages.length >= 4 && !isGreetingOnly) {
+        const lastFourUserMsgs = userMessages.slice(-4);
+        const shortAnswerCount = lastFourUserMsgs.filter(msg => {
           const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
           return !msgIsGreeting && isShortAnswer(msg);
-        });
+        }).length;
         
-        if (allShortAnswers) {
-          coachTip = "Your answers have been very brief. Short responses communicate disinterest or reluctance to engage. Try expanding — explain why you think that, add details, or share a quick example to show you're interested in the conversation!";
+        if (shortAnswerCount >= 3) {
+          coachTip = "Jordan is noticing your brief responses and may start winding down the conversation — just like someone would in real life when they sense disinterest. If you want to keep chatting, try expanding your next answer or asking Jordan a question to re-engage!";
         }
       }
       // Priority 4: Basic flow issues

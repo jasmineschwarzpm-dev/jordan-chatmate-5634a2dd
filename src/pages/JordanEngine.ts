@@ -46,7 +46,7 @@ This learner is practicing basic social skills. Adapt your support based on conv
 **Social cue awareness - Detecting disengagement:**
 
 Monitor for signs the learner may not want to continue:
-• Multiple short answers (1-3 words) in a row
+• 3-4 short answers (1-3 words) in a row
 • Rude or dismissive language
 • 3+ exchanges without asking you a question back
 
