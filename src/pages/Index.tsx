@@ -275,7 +275,7 @@ export default function App() {
         }).length;
         
         if (shortAnswerCount >= 3) {
-          coachTip = "Jordan is noticing your brief responses and may start winding down the conversation — just like someone would in real life when they sense disinterest. If you want to keep chatting, try expanding your next answer or asking Jordan a question to re-engage!";
+          coachTip = "Several short responses can signal disinterest in a conversation and cause a person to wind down the conversation. What could you ask Jordan or elaborate on to signal interest in continuing the conversation?";
         }
       }
       // Priority 4: Basic flow issues
