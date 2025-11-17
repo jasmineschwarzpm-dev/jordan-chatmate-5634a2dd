@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  CRISIS_KEYWORDS, CONTROVERSIAL_KEYWORDS,
+  CRISIS_KEYWORDS, CONTROVERSIAL_KEYWORDS, INSULT_KEYWORDS,
   EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE,
   SEVERITY_ORDER, type Severity
 } from "./constants";
@@ -18,6 +18,8 @@ export function detectTriggers(text: string): Trigger[] {
   }
   // Controversial
   if (CONTROVERSIAL_KEYWORDS.some(k => t.includes(k))) hits.push({ kind: "CONTROVERSIAL", reason: "controversial" });
+  // Insult/Derogatory
+  if (INSULT_KEYWORDS.some(k => t.includes(k))) hits.push({ kind: "INSULT", reason: "insult" });
   return hits.length ? hits : [{ kind: "NONE", reason: "none" }];
 }
 
@@ -36,6 +38,8 @@ export function coachMessageFor(kind: Severity): string | null {
       return "Avoid sharing personal contact info with strangers. Keep it general.";
     case "CONTROVERSIAL":
       return "That's a heavy topic for quick small talk. Try a neutral pivot question.";
+    case "INSULT":
+      return "Teasing or saying things that could be interpreted as unkind toward someone you just met is not a good strategy for continuing conversation. They don't know you well enough to know if you're kidding.";
     case "COACHING":
       return "Add an open question to keep things moving.";
     default:
