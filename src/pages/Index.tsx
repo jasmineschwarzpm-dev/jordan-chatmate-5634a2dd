@@ -266,16 +266,27 @@ export default function App() {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
       }
-      // Priority 3.5: Multiple short answers in a row (signals disengagement - Jordan will wind down)
+      // Priority 3.5: Multiple short answers OR questions (different coaching for each)
       else if (userMessages.length >= 4 && !isGreetingOnly) {
         const lastFourUserMsgs = userMessages.slice(-4);
-        const shortAnswerCount = lastFourUserMsgs.filter(msg => {
+        
+        // Count short non-question responses
+        const shortNonQuestionCount = lastFourUserMsgs.filter(msg => {
           const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
-          return !msgIsGreeting && isShortAnswer(msg);
+          const isQuestion = /\?/.test(msg.content);
+          return !msgIsGreeting && !isQuestion && isShortAnswer(msg);
         }).length;
         
-        if (shortAnswerCount >= 3) {
+        // Count short questions (rapid-fire questions without engaging)
+        const shortQuestionCount = lastFourUserMsgs.filter(msg => {
+          const isQuestion = /\?/.test(msg.content);
+          return isQuestion && isShortAnswer(msg);
+        }).length;
+        
+        if (shortNonQuestionCount >= 3) {
           coachTip = "Several short responses can signal disinterest in a conversation and cause a person to wind down the conversation. What could you ask Jordan or elaborate on to signal interest in continuing the conversation?";
+        } else if (shortQuestionCount >= 2) {
+          coachTip = "Try commenting on Jordan's answer before asking another question. It shows you're listening and keeps the conversation from feeling like an interview.";
         }
       }
       // Priority 4: Basic flow issues
