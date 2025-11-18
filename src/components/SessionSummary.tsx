@@ -38,12 +38,12 @@ export const SessionSummary = ({
       </CardHeader>
 
       <CardContent className="space-y-6 relative z-10">
-        {/* Practiced Skills */}
+        {/* What Went Well */}
         {summary.practiced.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold text-foreground">Skills You Practiced</h3>
+              <h3 className="font-semibold text-foreground">What You Did Well</h3>
             </div>
             <ul className="space-y-2">
               {summary.practiced.map((item, i) => (
@@ -59,24 +59,16 @@ export const SessionSummary = ({
           </div>
         )}
 
-        {/* Areas to Improve */}
+        {/* Largest Area for Growth */}
         {summary.improve.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-accent" />
-              <h3 className="font-semibold text-foreground">Next Time, Try</h3>
+              <h3 className="font-semibold text-foreground">Your Biggest Area for Growth</h3>
             </div>
-            <ul className="space-y-2">
-              {summary.improve.map((item, i) => (
-                <li 
-                  key={i} 
-                  className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20"
-                >
-                  <span className="text-accent mt-0.5">→</span>
-                  <span className="text-sm leading-relaxed">{item}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+              <p className="text-sm leading-relaxed font-medium">{summary.improve[0]}</p>
+            </div>
           </div>
         )}
 

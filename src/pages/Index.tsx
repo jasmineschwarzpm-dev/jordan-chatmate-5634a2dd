@@ -565,8 +565,8 @@ export default function App() {
               <div className="mt-12 space-y-8 animate-fade-in">
                 <SessionSummary
                   summary={{
-                    practiced: summary.practiced,
-                    improve: summary.wentWell,
+                    practiced: summary.wentWell,
+                    improve: [summary.nextStep],
                     sampleLine: summary.sampleLine || getSampleLine()
                   }}
                   onReset={reset}
@@ -656,37 +656,78 @@ function shouldStallNudge(history: Turn[]) {
 function makeSummary(history: Turn[]) {
   const userMsgs = history.filter(h => h.role === 'user');
   const jordanMsgs = history.filter(h => h.role === 'assistant');
+  const coachTips = history.filter(h => h.role === 'user' && h.coachTip).map(h => h.coachTip);
+  
   const userQCount = userMsgs.filter(msg => /\?/.test(msg.content)).length;
   const jordanQCount = jordanMsgs.filter(msg => /\?/.test(msg.content)).length;
   
-  const practiced = ["opener", "small talk"];
+  // What they practiced (basic completion metrics)
+  const practiced = ["small talk practice"];
   if (history.length > 6) practiced.push("multi-turn conversation");
-  if (history.length >= 10) practiced.push("natural closure");
+  if (history.length >= 10) practiced.push("sustained engagement");
   
+  // What went well - analyze their strengths
   const wentWell = [] as string[];
   const reciprocityScore = userMsgs.length > 0 ? userQCount / userMsgs.length : 0;
+  const avgUserMsgLength = userMsgs.reduce((sum, msg) => sum + msg.content.trim().split(/\s+/).length, 0) / (userMsgs.length || 1);
   
-  if (userQCount >= 2) wentWell.push("asked open questions");
-  if (reciprocityScore >= 0.4) wentWell.push("showed curiosity");
-  if (history.length >= 6) wentWell.push("kept momentum");
+  if (userQCount >= 3) wentWell.push("Asked multiple questions to show interest");
+  else if (userQCount >= 2) wentWell.push("Asked questions back");
   
-  // Analyze balance
-  const balanceIssue = jordanQCount > userQCount * 2;
-  const reciprocityIssue = userQCount === 0 && userMsgs.length >= 3;
+  if (avgUserMsgLength >= 10) wentWell.push("Shared thoughtful responses");
+  else if (avgUserMsgLength >= 5) wentWell.push("Gave substantive answers");
   
-  let nextStep = "";
-  if (reciprocityIssue) {
-    nextStep = "Practice asking 1-2 questions to show interest in the other person";
-  } else if (balanceIssue) {
-    nextStep = "Try balancing listening and sharing — conversation should feel 50/50";
-  } else if (userQCount < 2) {
-    nextStep = "Add an open-ended question in your next practice to invite response";
+  if (reciprocityScore >= 0.4) wentWell.push("Showed genuine curiosity");
+  if (history.length >= 6 && userQCount >= 2) wentWell.push("Maintained conversational flow");
+  
+  // Identify the LARGEST area for growth based on coaching received
+  let largestGrowthArea = "";
+  
+  // Count coaching themes
+  const coachingThemes = {
+    reciprocity: coachTips.filter(tip => tip && /ask.*question|reciprocity|what could you ask/i.test(tip)).length,
+    shortAnswers: coachTips.filter(tip => tip && /short|brief|elaborate/i.test(tip)).length,
+    notListening: coachTips.filter(tip => tip && /already told|not listening|asked you a question/i.test(tip)).length,
+    exitCues: coachTips.filter(tip => tip && /winding down|say goodbye|exit/i.test(tip)).length,
+    interviewing: coachTips.filter(tip => tip && /interview|commenting on.*answer/i.test(tip)).length
+  };
+  
+  // Find the most common issue
+  const maxCoaching = Math.max(...Object.values(coachingThemes));
+  
+  if (maxCoaching === 0) {
+    // No coaching given - analyze behavior directly
+    if (userQCount === 0 && userMsgs.length >= 3) {
+      largestGrowthArea = "Ask questions to show interest and keep the conversation balanced";
+    } else if (jordanQCount > userQCount * 2) {
+      largestGrowthArea = "Balance asking and sharing — try asking more questions to show engagement";
+    } else if (avgUserMsgLength < 5) {
+      largestGrowthArea = "Elaborate more on your answers to give the conversation depth";
+    } else {
+      largestGrowthArea = "Practice recognizing when it's time to wrap up the conversation";
+    }
   } else {
-    nextStep = "Practice wrapping up naturally after 8-10 exchanges";
+    // Use the most frequent coaching theme
+    if (coachingThemes.reciprocity === maxCoaching) {
+      largestGrowthArea = "Ask more questions to show interest and create balance in conversations";
+    } else if (coachingThemes.shortAnswers === maxCoaching) {
+      largestGrowthArea = "Expand your responses with more detail to keep conversations engaging";
+    } else if (coachingThemes.notListening === maxCoaching) {
+      largestGrowthArea = "Practice active listening — respond to what the other person shares";
+    } else if (coachingThemes.exitCues === maxCoaching) {
+      largestGrowthArea = "Learn to recognize and respond to conversation wind-down cues";
+    } else if (coachingThemes.interviewing === maxCoaching) {
+      largestGrowthArea = "Comment on answers before asking follow-up questions to avoid sounding like an interview";
+    }
   }
   
   const sampleText = getSampleLine();
-  return { practiced, wentWell, nextStep, sampleLine: sampleText };
+  return { 
+    practiced, 
+    wentWell, 
+    nextStep: largestGrowthArea, 
+    sampleLine: sampleText 
+  };
 }
 
 function getSampleLine(){
