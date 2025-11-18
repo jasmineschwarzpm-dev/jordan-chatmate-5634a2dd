@@ -266,8 +266,42 @@ export default function App() {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
       }
-      // Priority 3.5: Multiple short answers OR questions (different coaching for each)
-      else if (userMessages.length >= 4 && !isGreetingOnly) {
+      // Priority 3.5: Not answering Jordan's question
+      else if (history.length >= 3 && !isGreetingOnly) {
+        // Check if Jordan asked a question in the last 2-3 exchanges
+        const recentHistory = history.slice(-5); // Look at last 5 turns
+        let lastJordanQuestion = null;
+        let lastJordanQuestionIndex = -1;
+        
+        // Find the most recent question from Jordan
+        for (let i = recentHistory.length - 1; i >= 0; i--) {
+          if (recentHistory[i].role === "assistant" && /\?/.test(recentHistory[i].content)) {
+            lastJordanQuestion = recentHistory[i].content;
+            lastJordanQuestionIndex = i;
+            break;
+          }
+        }
+        
+        // If Jordan asked a question, check if user answered it in next 2 responses
+        if (lastJordanQuestion && lastJordanQuestionIndex >= 0) {
+          const userResponsesAfterQuestion = recentHistory.slice(lastJordanQuestionIndex + 1).filter(t => t.role === "user");
+          
+          // If user has sent 2+ messages after Jordan's question without addressing it
+          if (userResponsesAfterQuestion.length >= 2) {
+            // Simple heuristic: check if any response seems to address the question
+            // (contains relevant keywords or is substantive enough)
+            const hasSubstantiveResponse = userResponsesAfterQuestion.some(msg => 
+              msg.content.trim().split(/\s+/).length > 5 // More than 5 words suggests engagement
+            );
+            
+            if (!hasSubstantiveResponse) {
+              coachTip = "Jordan asked you a question. Try responding to it before moving on — it shows you're engaged and listening.";
+            }
+          }
+        }
+      }
+      // Priority 3.6: Multiple short answers OR questions (different coaching for each)
+      if (!coachTip && userMessages.length >= 4 && !isGreetingOnly) {
         const lastFourUserMsgs = userMessages.slice(-4);
         
         // Count short non-question responses
