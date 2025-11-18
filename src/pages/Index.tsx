@@ -241,7 +241,41 @@ export default function App() {
           coachTip = "Saying hi is good! But try adding something more to keep the conversation going. Share a quick thought or ask Jordan a question.";
         }
       }
-      // Priority 2: Uncertainty/stuck expressions
+      // Priority 2: Asking about something Jordan already shared
+      else if (hasQuestion && history.length >= 2) {
+        // Check if user is asking about something Jordan has already mentioned
+        const jordanMessages = history.filter(h => h.role === "assistant").map(h => h.content.toLowerCase());
+        const userQuestion = userText.toLowerCase();
+        
+        // Simple keyword overlap detection - look for question words and topics
+        const questionTopics = userQuestion.match(/\b(what|where|how|why|which|who|when)\s+[^?]+/gi);
+        
+        if (questionTopics && questionTopics.length > 0) {
+          // Check if any Jordan message already addressed this topic
+          const alreadyAnswered = jordanMessages.some(jordanMsg => {
+            return questionTopics.some(topic => {
+              // Extract key words from the question (excluding question words)
+              const topicWords = topic.toLowerCase()
+                .replace(/\b(what|where|how|why|which|who|when|do|does|did|is|are|was|were|you|your)\b/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter(w => w.length > 3); // Only consider meaningful words
+              
+              // Check if Jordan's message contains most of these key words
+              if (topicWords.length > 0) {
+                const matchCount = topicWords.filter(word => jordanMsg.includes(word)).length;
+                return matchCount >= Math.min(2, topicWords.length); // At least 2 keywords or all if fewer
+              }
+              return false;
+            });
+          });
+          
+          if (alreadyAnswered) {
+            coachTip = "Jordan has already told you about this. Asking about things they've already shared can signal that you're not listening or interested.";
+          }
+        }
+      }
+      // Priority 3: Uncertainty/stuck expressions
       else if (/\b(i don't know|idk|not sure|no clue|can't think|i'm stuck|don't know what)\b/i.test(userText.toLowerCase())) {
         const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
         const jordanAskedQuestion = /\?/.test(lastJordan);
@@ -252,7 +286,7 @@ export default function App() {
           coachTip = "Not sure what to say? Try: 1) Ask a follow-up question ('How'd you get into that?'), 2) Share something related ('I've been curious about that'), or 3) Make a connection ('That reminds me of...')";
         }
       }
-      // Priority 3: Gen Z-specific conversation patterns (exclude greeting-only messages)
+      // Priority 4: Gen Z-specific conversation patterns (exclude greeting-only messages)
       else if (history.length >= 3 && !isGreetingOnly && lastThreeUserMsgs.every(msg => {
         const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
         return !msgIsGreeting && !/\?/.test(msg.content) && msg.content;
