@@ -300,6 +300,42 @@ export default function App() {
         // Milestone coaching: natural wrap-up
         coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
       }
+      // Priority 3.4: Jordan winding down but user not picking up cues
+      else if (history.length >= 3) {
+        // Check Jordan's last 2-3 messages for wind-down language
+        const recentJordanMsgs = history.slice(-5).filter(h => h.role === "assistant");
+        const windDownPatterns = [
+          /\b(should (get going|head out|take off|grab|run)|gotta (go|run|get going))/i,
+          /\b(take care|see you|good luck|catch you later|have a good|nice talking|good chatting)/i,
+          /\b(anyway|alright|well,? then)/i,
+          /\b(let you (get back|go)|I'll let you)/i
+        ];
+        
+        const jordanWindingDown = recentJordanMsgs.slice(-2).some(msg => 
+          windDownPatterns.some(pattern => pattern.test(msg.content))
+        );
+        
+        // Check if user is also winding down (reciprocating exit cues)
+        const userWindingDown = /\b(bye|goodbye|see you|take care|thanks|gotta go|have a good)/i.test(userText);
+        
+        if (jordanWindingDown && !userWindingDown) {
+          // Find which cues Jordan used
+          const recentJordanText = recentJordanMsgs.slice(-2).map(m => m.content).join(" ");
+          let cueExamples = "";
+          
+          if (/should (get going|head out|take off|grab|run)|gotta (go|run)/i.test(recentJordanText)) {
+            cueExamples = "saying they should get going or need to run";
+          } else if (/take care|see you|good luck/i.test(recentJordanText)) {
+            cueExamples = "using phrases like 'take care' or 'good luck'";
+          } else if (/let you (get back|go)|I'll let you/i.test(recentJordanText)) {
+            cueExamples = "saying they'll let you go";
+          } else {
+            cueExamples = "using wrap-up phrases";
+          }
+          
+          coachTip = `Jordan is winding down the conversation by ${cueExamples}. It's time to say goodbye — try 'Nice talking to you!' or 'Take care!'`;
+        }
+      }
       // Priority 3.5: Not answering Jordan's question
       else if (history.length >= 3 && !isGreetingOnly) {
         // Check if Jordan asked a question in the last 2-3 exchanges
