@@ -39,7 +39,7 @@ export function coachMessageFor(kind: Severity): string | null {
     case "CONTROVERSIAL":
       return "That's a heavy topic for quick small talk. Try a neutral pivot question.";
     case "INSULT":
-      return "Teasing or saying things that could be interpreted as unkind toward someone you just met is not a good strategy for continuing conversation. They don't know you well enough to know if you're kidding.";
+      return "Saying things that could be interpreted as unkind or insulting when you initially meet someone implies you don't want to talk to them. They don't know you well enough to know if you're kidding.";
     case "COACHING":
       return "Add an open question to keep things moving.";
     default:
