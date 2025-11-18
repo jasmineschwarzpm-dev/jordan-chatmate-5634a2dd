@@ -305,35 +305,38 @@ export default function App() {
         // Check Jordan's last 2-3 messages for wind-down language
         const recentJordanMsgs = history.slice(-5).filter(h => h.role === "assistant");
         const windDownPatterns = [
-          /\b(should (get going|head out|take off|grab|run)|gotta (go|run|get going))/i,
-          /\b(take care|see you|good luck|catch you later|have a good|nice talking|good chatting)/i,
-          /\b(anyway|alright|well,? then)/i,
-          /\b(let you (get back|go)|I'll let you)/i
+          { pattern: /\b(should (get going|head out|take off|grab|run)|gotta (go|run|get going))/i, type: "leaving" },
+          { pattern: /\b(take care|see you|good luck|catch you later|have a good|nice talking|good chatting)/i, type: "farewell" },
+          { pattern: /\b(anyway|alright|well,? then)/i, type: "transition" },
+          { pattern: /\b(let you (get back|go)|I'll let you)/i, type: "release" }
         ];
         
-        const jordanWindingDown = recentJordanMsgs.slice(-2).some(msg => 
-          windDownPatterns.some(pattern => pattern.test(msg.content))
-        );
+        let exitQuote = "";
+        let exitType = "";
+        
+        // Find the specific exit cue Jordan used
+        for (const msg of recentJordanMsgs.slice(-2)) {
+          for (const { pattern, type } of windDownPatterns) {
+            const match = msg.content.match(pattern);
+            if (match) {
+              // Extract the sentence containing the exit cue
+              const sentences = msg.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
+              const exitSentence = sentences.find(s => pattern.test(s));
+              if (exitSentence) {
+                exitQuote = exitSentence.trim();
+                exitType = type;
+                break;
+              }
+            }
+          }
+          if (exitQuote) break;
+        }
         
         // Check if user is also winding down (reciprocating exit cues)
         const userWindingDown = /\b(bye|goodbye|see you|take care|thanks|gotta go|have a good)/i.test(userText);
         
-        if (jordanWindingDown && !userWindingDown) {
-          // Find which cues Jordan used
-          const recentJordanText = recentJordanMsgs.slice(-2).map(m => m.content).join(" ");
-          let cueExamples = "";
-          
-          if (/should (get going|head out|take off|grab|run)|gotta (go|run)/i.test(recentJordanText)) {
-            cueExamples = "saying they should get going or need to run";
-          } else if (/take care|see you|good luck/i.test(recentJordanText)) {
-            cueExamples = "using phrases like 'take care' or 'good luck'";
-          } else if (/let you (get back|go)|I'll let you/i.test(recentJordanText)) {
-            cueExamples = "saying they'll let you go";
-          } else {
-            cueExamples = "using wrap-up phrases";
-          }
-          
-          coachTip = `Jordan is winding down the conversation by ${cueExamples}. It's time to say goodbye — try 'Nice talking to you!' or 'Take care!'`;
+        if (exitQuote && !userWindingDown) {
+          coachTip = `Jordan said "${exitQuote}" — this is hinting that it's time to end the conversation. You should say goodbye, like 'Nice talking to you!' or 'Take care!'`;
         }
       }
       // Priority 3.5: Not answering Jordan's question
