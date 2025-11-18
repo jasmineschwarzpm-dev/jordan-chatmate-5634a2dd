@@ -217,6 +217,13 @@ export default function App() {
       const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
       const isGreetingOnly = greetingOnlyPattern.test(userText.toLowerCase()) && wordCount < 3;
 
+      // Check if Jordan has ended the conversation (definitive goodbye)
+      const jordanEndedConversation = history.slice(-2).some(h => 
+        h.role === "assistant" && 
+        /\b(bye|goodbye|see you around|take care|catch you later|have a good one|nice talking to you|good chatting)\b/i.test(h.content) &&
+        !/\?/.test(h.content) // No question mark means it's a statement goodbye, not asking
+      );
+
       // Helper: Check if a message is a "short answer" (1-3 words or single brief sentence)
       const isShortAnswer = (msg: { content: string }) => {
         const words = msg.content.trim().split(/\s+/).length;
@@ -287,13 +294,14 @@ export default function App() {
         }
       }
       // Priority 4: Gen Z-specific conversation patterns (exclude greeting-only messages)
-      else if (history.length >= 3 && !isGreetingOnly && lastThreeUserMsgs.every(msg => {
+      // SKIP if Jordan has ended the conversation
+      else if (!jordanEndedConversation && history.length >= 3 && !isGreetingOnly && lastThreeUserMsgs.every(msg => {
         const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
         return !msgIsGreeting && !/\?/.test(msg.content) && msg.content;
       })) {
         // No reciprocity - answering without asking back (common Gen Z issue)
         coachTip = "You've shared a lot, which is great! Good conversationalists ask questions back. What could you ask Jordan?";
-      } else if (recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
+      } else if (!jordanEndedConversation && recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
         // Jordan asked 2 questions in a row - signal interview mode
         coachTip = "Jordan asked about you twice. To balance the conversation, try asking Jordan something related to what they shared!";
       } else if (history.length >= 8 && history.length <= 10) {
