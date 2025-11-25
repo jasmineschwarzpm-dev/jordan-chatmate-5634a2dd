@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
-interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"; zip?: string; ageConfirmed: boolean }
+interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"; ageConfirmed: boolean }
 
 type Adapter = "lovable"|"openai"|"mock";
 
