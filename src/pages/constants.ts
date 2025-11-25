@@ -7,7 +7,14 @@ export const DEFAULTS = {
 };
 
 // Guardrail patterns
-export const CRISIS_KEYWORDS = ["suicide", "kill myself", "end it all", "self-harm", "hurt myself", "want to die", "ending my life"];
+export const CRISIS_KEYWORDS = [
+  // Explicit crisis language
+  "suicide", "kill myself", "end it all", "self-harm", "hurt myself", "want to die", "ending my life",
+  // Distress signals that indicate potential crisis
+  "can't find a reason", "no reason to", "can't keep going", "can't go on", "give up on life", 
+  "no point in living", "tired of living", "better off dead", "don't want to be here", 
+  "end my suffering", "escape this pain", "no way out", "can't take it anymore"
+];
 export const CONTROVERSIAL_KEYWORDS = ["politics", "religion", "trump", "biden", "abortion", "gun control", "immigration", "sex", "sexual"];
 export const INSULT_KEYWORDS = ["weird", "stupid", "dumb", "idiotic", "lame", "loser", "pathetic", "ridiculous", "absurd", "crazy for liking", "insane for liking", "nerdy", "geeky", "uncool"];
 
