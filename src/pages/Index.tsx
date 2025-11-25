@@ -199,36 +199,81 @@ export default function App() {
     // 1) Detect triggers on user text
     const triggers = detectTriggers(userText);
     const main = prioritize(triggers);
+    
+    // Initialize coachTip early (may be set by crisis analysis)
+    let coachTip: string | undefined;
 
-    // 2) Crisis: Show crisis modal and terminate session immediately
+    // 2) Crisis: Use LLM to analyze context before showing crisis modal
     if (shouldTerminateSession(main.kind)) {
-      // Add user message to history (so they can see what triggered it)
-      setHistory(h => [...h, { role: "user", content: userText }]);
+      // Build recent conversation context (last 5 messages)
+      const recentMessages = history.slice(-5).map(h => ({
+        role: h.role,
+        content: h.content
+      }));
       
-      // Stop conversation and show crisis modal
-      setShowCrisisModal(true);
-      setEnded(true);
-      setBusy(false);
+      // Add current user message to context
+      recentMessages.push({ role: "user", content: userText });
       
-      // Update database to mark crisis detected
-      if (sessionDbId) {
-        await supabase
-          .from("sessions")
-          .update({ 
-            crisis_detected: true,
-            ended_at: new Date().toISOString(),
-            total_turns: history.length + 1,
-            transcript: JSON.parse(JSON.stringify([...history, { role: "user", content: userText }])),
-          })
-          .eq("id", sessionDbId)
-          .eq("session_token", sessionToken);
+      try {
+        // Call LLM to analyze crisis context
+        const { data: analysis, error } = await supabase.functions.invoke("analyze-crisis-context", {
+          body: { 
+            recentMessages,
+            triggerKeyword: triggers.find(t => t.kind === "CRISIS")?.reason || "crisis"
+          }
+        });
+        
+        if (error) {
+          console.error("Crisis context analysis error:", error);
+          // Fail safe: default to crisis intervention
+          analysis.severity = "crisis";
+        }
+        
+        console.log("Crisis analysis result:", analysis);
+        
+        // Add user message to history
+        setHistory(h => [...h, { role: "user", content: userText }]);
+        
+        if (analysis.severity === "crisis") {
+          // Personal distress detected - show crisis modal
+          setShowCrisisModal(true);
+          setEnded(true);
+          setBusy(false);
+          
+          // Update database to mark crisis detected
+          if (sessionDbId) {
+            await supabase
+              .from("sessions")
+              .update({ 
+                crisis_detected: true,
+                ended_at: new Date().toISOString(),
+                total_turns: history.length + 1,
+                transcript: JSON.parse(JSON.stringify([...history, { role: "user", content: userText }])),
+              })
+              .eq("id", sessionDbId)
+              .eq("session_token", sessionToken);
+          }
+          
+          return;
+        } else if (analysis.severity === "coaching") {
+          // Borderline or academic mention - add soft coaching hint
+          coachTip = "That's a heavy or personal topic for casual small talk. Try pivoting to something lighter like hobbies, the scene, or asking Jordan a question.";
+        }
+        // If "safe", continue normally (no intervention)
+        
+      } catch (err) {
+        console.error("Failed to analyze crisis context:", err);
+        // Fail safe: show crisis modal if analysis fails
+        setHistory(h => [...h, { role: "user", content: userText }]);
+        setShowCrisisModal(true);
+        setEnded(true);
+        setBusy(false);
+        return;
       }
-      
-      return;
     }
 
     // 3) Determine coach tip BEFORE calling LLM (attach to user message)
-    let coachTip: string | undefined;
+    // Note: coachTip may already be set by crisis analysis above
     if (!cooldown) {
       const wordCount = userText.trim().split(/\s+/).length;
       const hasQuestion = /\?/.test(userText);
