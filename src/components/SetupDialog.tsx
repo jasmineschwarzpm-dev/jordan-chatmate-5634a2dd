@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, ArrowRight } from "lucide-react";
+import { MessageCircle, ArrowRight, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { SCENES, type Scene } from "@/pages/constants";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SetupDialogProps {
   open: boolean;
@@ -20,9 +21,10 @@ interface SetupDialogProps {
 
 export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => {
   const [scene, setScene] = useState<Scene>("bookstore");
-  const [interlocutor, setInterlocutor] = useState<"he" | "she" | "they" | "neutral">("neutral");
+  const [interlocutor, setInterlocutor] = useState<"he" | "she" | "they" | "neutral">("they");
   const [zip, setZip] = useState("");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [showResources, setShowResources] = useState(false);
 
   const canStart = ageConfirmed && !!scene && !!interlocutor;
 
@@ -52,19 +54,13 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
         </DialogHeader>
 
         <div className="space-y-6 mt-8">
-          <div className="p-5 rounded-2xl bg-muted/40 border border-border/30">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Jordan helps you practice everyday conversations. This is for practice—not therapy. If you need support, call or text <span className="font-semibold">988</span>.
-            </p>
-          </div>
-
           <div className="space-y-5">
             <div className="space-y-3">
               <Label className="text-sm font-semibold text-foreground">
                 Choose a scene
               </Label>
               <Select value={scene} onValueChange={(v) => setScene(v as Scene)}>
-                <SelectTrigger className="h-12 text-base border-border/50 rounded-xl">
+                <SelectTrigger className="h-12 text-base border-border/50 rounded-xl capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -86,7 +82,6 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="neutral" className="text-base">Neutral</SelectItem>
                   <SelectItem value="she" className="text-base">She/Her</SelectItem>
                   <SelectItem value="he" className="text-base">He/Him</SelectItem>
                   <SelectItem value="they" className="text-base">They/Them</SelectItem>
@@ -100,7 +95,7 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
               </Label>
               <Input
                 className="h-12 text-base border-border/50 rounded-xl"
-                placeholder="e.g., 80550"
+                placeholder="e.g., 12345"
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
               />
@@ -115,9 +110,43 @@ export const SetupDialog = ({ open, onStartConversation }: SetupDialogProps) => 
                 onCheckedChange={(checked) => setAgeConfirmed(checked as boolean)}
                 className="border-2 mt-0.5"
               />
-              <Label htmlFor="age-confirm" className="text-sm font-medium cursor-pointer leading-relaxed">
-                I'm 18 years or older and ready to practice
-              </Label>
+              <div className="flex-1 space-y-3">
+                <Label htmlFor="age-confirm" className="text-sm font-medium cursor-pointer leading-relaxed">
+                  I'm 18 years or older and ready to practice
+                </Label>
+                <div className="pt-1">
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+                    Jordan is for practice—not crisis support or therapy.
+                  </p>
+                  <Collapsible open={showResources} onOpenChange={setShowResources}>
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                      {showResources ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      {showResources ? "Hide" : "Show"} support resources
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3 space-y-2">
+                      <div className="text-xs space-y-1.5 text-muted-foreground">
+                        <p className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">988</span> 
+                          <span>— Suicide & Crisis Lifeline (call or text)</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">741741</span> 
+                          <span>— Crisis Text Line (text "HELLO")</span>
+                        </p>
+                        <a 
+                          href="https://findtreatment.gov" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-primary hover:underline pt-1"
+                        >
+                          <span>Find local mental health resources</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              </div>
             </div>
             <Button
               disabled={!canStart}

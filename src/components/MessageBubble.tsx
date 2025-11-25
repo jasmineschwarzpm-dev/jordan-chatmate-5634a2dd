@@ -4,28 +4,37 @@ import { User } from "lucide-react";
 interface MessageBubbleProps {
   role: "user" | "assistant";
   content: string;
+  isGrouped?: boolean;
 }
 
-export const MessageBubble = ({ role, content }: MessageBubbleProps) => {
+export const MessageBubble = ({ role, content, isGrouped = false }: MessageBubbleProps) => {
   const isUser = role === "user";
 
   return (
-    <div className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-      {/* Avatar */}
+    <div className={`flex gap-4 ${isUser ? "flex-row-reverse" : "flex-row"} ${isGrouped ? "mt-1" : "mt-4"}`}>
+      {/* Avatar - Hidden when grouped */}
       {!isUser && (
-        <Avatar className="h-10 w-10 border-2 border-primary/10 bg-gradient-to-br from-primary/15 to-accent/15 shrink-0">
-          <AvatarFallback className="bg-transparent text-primary font-bold text-lg">
-            J
-          </AvatarFallback>
-        </Avatar>
+        <div className={`${isGrouped ? "w-10" : ""}`}>
+          {!isGrouped && (
+            <Avatar className="h-10 w-10 border-2 border-primary/10 bg-gradient-to-br from-primary/15 to-accent/15 shrink-0">
+              <AvatarFallback className="bg-transparent text-primary font-bold text-lg">
+                J
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
       )}
       
       {isUser && (
-        <Avatar className="h-10 w-10 bg-muted/60 shrink-0">
-          <AvatarFallback className="bg-transparent">
-            <User className="w-5 h-5 text-muted-foreground" />
-          </AvatarFallback>
-        </Avatar>
+        <div className={`${isGrouped ? "w-10" : ""}`}>
+          {!isGrouped && (
+            <Avatar className="h-10 w-10 bg-muted/60 shrink-0">
+              <AvatarFallback className="bg-transparent">
+                <User className="w-5 h-5 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
+          )}
+        </div>
       )}
 
       {/* Message Content */}

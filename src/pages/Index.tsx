@@ -18,7 +18,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // --- Types ---
 interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
-interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"|"neutral"; zip?: string; ageConfirmed: boolean }
+interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"; zip?: string; ageConfirmed: boolean }
 
 type Adapter = "lovable"|"openai"|"mock";
 
@@ -27,7 +27,7 @@ export default function App() {
   const { toast } = useToast();
   
   // Setup state
-  const [setup, setSetup] = useState<Setup>({ scene: DEFAULTS.scene, interlocutor: "neutral", ageConfirmed: false });
+  const [setup, setSetup] = useState<Setup>({ scene: DEFAULTS.scene, interlocutor: "they", ageConfirmed: false });
   const [showSetup, setShowSetup] = useState(true);
   const adapter: Adapter = "lovable"; // Fixed to Lovable
 
@@ -551,22 +551,39 @@ export default function App() {
 
         {/* Messages Area - Clean and spacious */}
         <ScrollArea className="flex-1">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
-            {history.map((t, i) => (
-              <div key={i} className="space-y-4 animate-slide-in">
-                <MessageBubble role={t.role} content={t.content} />
-                {t.coachTip && (
-                  <CoachTip content={t.coachTip} isCrisis={t.coachTip.includes("988")} />
-                )}
-              </div>
-            ))}
+          <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-0">
+            {history.map((t, i) => {
+              const previousTurn = i > 0 ? history[i - 1] : null;
+              const isGrouped = previousTurn?.role === t.role;
+              
+              return (
+                <div key={i} className="animate-slide-in">
+                  <MessageBubble 
+                    role={t.role} 
+                    content={t.content}
+                    isGrouped={isGrouped}
+                  />
+                  {t.coachTip && (
+                    <div className="mt-3 mb-5">
+                      <CoachTip content={t.coachTip} isCrisis={t.coachTip.includes("988")} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             
-            {busy && <TypingIndicator />}
+            {busy && (
+              <div className="mt-4">
+                <TypingIndicator />
+              </div>
+            )}
             
             {pauseWarning && !busy && !ended && (
-              <CoachTip 
-                content="Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like 'What brings you here today?'" 
-              />
+              <div className="mt-5">
+                <CoachTip 
+                  content="Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like 'What brings you here today?'" 
+                />
+              </div>
             )}
             
             {ended && (
