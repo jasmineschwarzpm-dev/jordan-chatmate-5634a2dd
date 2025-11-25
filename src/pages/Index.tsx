@@ -3,6 +3,7 @@ import { DEFAULTS, type Scene } from "./constants";
 import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
+import { generateCoachTip } from "./coachingEngine";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -272,217 +273,23 @@ export default function App() {
       }
     }
 
-    // 3) Determine coach tip BEFORE calling LLM (attach to user message)
+    // 3) Generate coaching tip using refined coaching engine
     // Note: coachTip may already be set by crisis analysis above
-    if (!cooldown) {
-      const wordCount = userText.trim().split(/\s+/).length;
-      const hasQuestion = /\?/.test(userText);
-      const userMessages = [...history, { role: "user" as const, content: userText }].filter(h => h.role === "user");
-      const lastThreeUserMsgs = userMessages.slice(-3);
-      const recentJordanMsgs = history.slice(-2).filter(h => h.role === "assistant");
-      const greetingOnlyPattern = /^(hey|hi|hello|yo|sup|what's up|wassup|hiya|howdy)[\s!.]*$/i;
-      const isGreetingOnly = greetingOnlyPattern.test(userText.toLowerCase()) && wordCount < 3;
-
+    if (!coachTip) {
       // Check if Jordan has ended the conversation (definitive goodbye)
       const jordanEndedConversation = history.slice(-2).some(h => 
         h.role === "assistant" && 
         /\b(bye|goodbye|see you around|take care|catch you later|have a good one|nice talking to you|good chatting)\b/i.test(h.content) &&
-        !/\?/.test(h.content) // No question mark means it's a statement goodbye, not asking
+        !/\?/.test(h.content)
       );
-
-      // Helper: Check if a message is a "short answer" (1-3 words or single brief sentence)
-      const isShortAnswer = (msg: { content: string }) => {
-        const words = msg.content.trim().split(/\s+/).length;
-        const sentences = msg.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-        return words <= 3 || (sentences.length === 1 && words <= 8);
-      };
-
-      // Priority 1: Safety
-      if (main.kind === "PII") {
-        coachTip = `Your message contained personal contact info (${main.reason}). Avoid sharing emails, phone numbers, or addresses with strangers. Keep details general.`;
-      } else if (main.kind === "CONTROVERSIAL") {
-        const topic = triggers.find(t => t.kind === "CONTROVERSIAL")?.reason || "topic";
-        coachTip = `"${topic}" can be polarizing for casual small talk. Try a more neutral topic like hobbies, books, or local spots.`;
-      }
-      // Priority 1.5: Greeting-only responses (any message, not just first)
-      else if (isGreetingOnly && history.length > 0) {
-        const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
-        const jordanAskedQuestion = /\?/.test(lastJordan);
-        if (jordanAskedQuestion) {
-          coachTip = "Great to say hi! But Jordan asked you a question. Try answering it to keep the conversation flowing naturally.";
-        } else {
-          coachTip = "Saying hi is good! But try adding something more to keep the conversation going. Share a quick thought or ask Jordan a question.";
-        }
-      }
-      // Priority 2: Asking about something Jordan already shared
-      else if (hasQuestion && history.length >= 2) {
-        // Check if user is asking about something Jordan has already mentioned
-        const jordanMessages = history.filter(h => h.role === "assistant").map(h => h.content.toLowerCase());
-        const userQuestion = userText.toLowerCase();
-        
-        // Simple keyword overlap detection - look for question words and topics
-        const questionTopics = userQuestion.match(/\b(what|where|how|why|which|who|when)\s+[^?]+/gi);
-        
-        if (questionTopics && questionTopics.length > 0) {
-          // Check if any Jordan message already addressed this topic
-          const alreadyAnswered = jordanMessages.some(jordanMsg => {
-            return questionTopics.some(topic => {
-              // Extract key words from the question (excluding question words)
-              const topicWords = topic.toLowerCase()
-                .replace(/\b(what|where|how|why|which|who|when|do|does|did|is|are|was|were|you|your)\b/g, '')
-                .trim()
-                .split(/\s+/)
-                .filter(w => w.length > 3); // Only consider meaningful words
-              
-              // Check if Jordan's message contains most of these key words
-              if (topicWords.length > 0) {
-                const matchCount = topicWords.filter(word => jordanMsg.includes(word)).length;
-                return matchCount >= Math.min(2, topicWords.length); // At least 2 keywords or all if fewer
-              }
-              return false;
-            });
-          });
-          
-          if (alreadyAnswered) {
-            coachTip = "Jordan has already told you about this. Asking about things they've already shared can signal that you're not listening or interested.";
-          }
-        }
-      }
-      // Priority 3: Uncertainty/stuck expressions
-      else if (/\b(i don't know|idk|not sure|no clue|can't think|i'm stuck|don't know what)\b/i.test(userText.toLowerCase())) {
-        const lastJordan = history.slice(-1).find(h => h.role === "assistant")?.content || "";
-        const jordanAskedQuestion = /\?/.test(lastJordan);
-        
-        if (jordanAskedQuestion) {
-          coachTip = "It's okay to not have a perfect answer! Try: 1) Ask a related question back, 2) Share a quick thought ('That's interesting...'), or 3) Keep it simple: 'Still figuring that out — what about you?'";
-        } else {
-          coachTip = "Not sure what to say? Try: 1) Ask a follow-up question ('How'd you get into that?'), 2) Share something related ('I've been curious about that'), or 3) Make a connection ('That reminds me of...')";
-        }
-      }
-      // Priority 4: Gen Z-specific conversation patterns (exclude greeting-only messages)
-      // SKIP if Jordan has ended the conversation
-      else if (!jordanEndedConversation && history.length >= 3 && !isGreetingOnly && lastThreeUserMsgs.every(msg => {
-        const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
-        return !msgIsGreeting && !/\?/.test(msg.content) && msg.content;
-      })) {
-        // No reciprocity - answering without asking back (common Gen Z issue)
-        coachTip = "You've shared a lot, which is great! Good conversationalists ask questions back. What could you ask Jordan?";
-      } else if (!jordanEndedConversation && recentJordanMsgs.length >= 2 && recentJordanMsgs.every(msg => /\?/.test(msg.content))) {
-        // Jordan asked 2 questions in a row - signal interview mode
-        coachTip = "Jordan asked about you twice. To balance the conversation, try asking Jordan something related to what they shared!";
-      } else if (history.length >= 8 && history.length <= 10) {
-        // Milestone coaching: natural wrap-up
-        coachTip = "You're getting good practice! Small talk often wraps up naturally around now. Notice if Jordan starts signaling an exit.";
-      }
-      // Priority 3.4: Jordan winding down but user not picking up cues
-      else if (history.length >= 3) {
-        // Check Jordan's last 2-3 messages for wind-down language
-        const recentJordanMsgs = history.slice(-5).filter(h => h.role === "assistant");
-        const windDownPatterns = [
-          { pattern: /\b(should (get going|head out|take off|grab|run)|gotta (go|run|get going))/i, type: "leaving" },
-          { pattern: /\b(take care|see you|good luck|catch you later|have a good|nice talking|good chatting)/i, type: "farewell" },
-          { pattern: /\b(anyway|alright|well,? then)/i, type: "transition" },
-          { pattern: /\b(let you (get back|go)|I'll let you)/i, type: "release" }
-        ];
-        
-        let exitQuote = "";
-        let exitType = "";
-        
-        // Find the specific exit cue Jordan used
-        for (const msg of recentJordanMsgs.slice(-2)) {
-          for (const { pattern, type } of windDownPatterns) {
-            const match = msg.content.match(pattern);
-            if (match) {
-              // Extract the sentence containing the exit cue
-              const sentences = msg.content.split(/[.!?]+/).filter(s => s.trim().length > 0);
-              const exitSentence = sentences.find(s => pattern.test(s));
-              if (exitSentence) {
-                exitQuote = exitSentence.trim();
-                exitType = type;
-                break;
-              }
-            }
-          }
-          if (exitQuote) break;
-        }
-        
-        // Check if user is also winding down (reciprocating exit cues)
-        const userWindingDown = /\b(bye|goodbye|see you|take care|thanks|gotta go|have a good)/i.test(userText);
-        
-        if (exitQuote && !userWindingDown) {
-          coachTip = `Jordan said "${exitQuote}" — this is hinting that it's time to end the conversation. You should say goodbye, like 'Nice talking to you!' or 'Take care!'`;
-        }
-      }
-      // Priority 3.5: Not answering Jordan's question
-      else if (history.length >= 3 && !isGreetingOnly) {
-        // Check if Jordan asked a question in the last 2-3 exchanges
-        const recentHistory = history.slice(-5); // Look at last 5 turns
-        let lastJordanQuestion = null;
-        let lastJordanQuestionIndex = -1;
-        
-        // Find the most recent question from Jordan
-        for (let i = recentHistory.length - 1; i >= 0; i--) {
-          if (recentHistory[i].role === "assistant" && /\?/.test(recentHistory[i].content)) {
-            lastJordanQuestion = recentHistory[i].content;
-            lastJordanQuestionIndex = i;
-            break;
-          }
-        }
-        
-        // If Jordan asked a question, check if user answered it in next 2 responses
-        if (lastJordanQuestion && lastJordanQuestionIndex >= 0) {
-          const userResponsesAfterQuestion = recentHistory.slice(lastJordanQuestionIndex + 1).filter(t => t.role === "user");
-          
-          // If user has sent 2+ messages after Jordan's question without addressing it
-          if (userResponsesAfterQuestion.length >= 2) {
-            // Simple heuristic: check if any response seems to address the question
-            // (contains relevant keywords or is substantive enough)
-            const hasSubstantiveResponse = userResponsesAfterQuestion.some(msg => 
-              msg.content.trim().split(/\s+/).length > 5 // More than 5 words suggests engagement
-            );
-            
-            if (!hasSubstantiveResponse) {
-              coachTip = "Jordan asked you a question. Try responding to it before moving on — it shows you're engaged and listening.";
-            }
-          }
-        }
-      }
-      // Priority 3.6: Multiple short answers OR questions (different coaching for each)
-      if (!coachTip && userMessages.length >= 4 && !isGreetingOnly) {
-        const lastFourUserMsgs = userMessages.slice(-4);
-        
-        // Count short non-question responses
-        const shortNonQuestionCount = lastFourUserMsgs.filter(msg => {
-          const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
-          const isQuestion = /\?/.test(msg.content);
-          return !msgIsGreeting && !isQuestion && isShortAnswer(msg);
-        }).length;
-        
-        // Count short questions (rapid-fire questions without engaging)
-        const shortQuestionCount = lastFourUserMsgs.filter(msg => {
-          const isQuestion = /\?/.test(msg.content);
-          return isQuestion && isShortAnswer(msg);
-        }).length;
-        
-        if (shortNonQuestionCount >= 3) {
-          coachTip = "Several short responses can signal disinterest in a conversation and cause a person to wind down the conversation. What could you ask Jordan or elaborate on to signal interest in continuing the conversation?";
-        } else if (shortQuestionCount >= 2) {
-          coachTip = "Try commenting on Jordan's answer before asking another question. It shows you're listening and keeps the conversation from feeling like an interview.";
-        }
-      }
-      // Priority 4: Basic flow issues
-      else if (shouldStallNudge(history)) {
-        coachTip = "Your last few messages were brief and didn't ask questions. Try adding an open-ended question to keep the conversation flowing.";
-      } else if (wordCount < 5 && !hasQuestion && !isGreetingOnly && history.length > 1) {
-        // Overly brief (Gen Z tendency: fear of saying too much)
-        coachTip = "Your message was very brief. It's okay to share a bit more! Add a sentence or two, then ask a question.";
-      } else if (wordCount > 50 && !hasQuestion && history.length > 1) {
-        // Long monologue without reciprocity (Gen Z tendency: oversharing when comfortable)
-        coachTip = "That's a thoughtful answer! To keep it conversational, try wrapping up with a question for Jordan.";
-      } else if (history.length === 1 && wordCount > 60) {
-        // First message overshare (Gen Z tendency: anxiety-driven over-explanation)
-        coachTip = "Great detail, but small talk usually starts shorter. Try keeping openers to 2-3 sentences, then see where it goes!";
-      }
+      
+      coachTip = generateCoachTip({
+        userText,
+        history,
+        triggerKind: main.kind,
+        cooldown,
+        jordanEndedConversation
+      });
     }
 
     // 4) Add user message immediately (show it before Jordan responds)
