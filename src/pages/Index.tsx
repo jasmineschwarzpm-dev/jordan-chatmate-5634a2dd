@@ -6,7 +6,7 @@ import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Send, RotateCcw, X } from "lucide-react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { TypingIndicator } from "@/components/TypingIndicator";
@@ -47,7 +47,7 @@ export default function App() {
   const [sessionToken, setSessionToken] = useState<string>("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-scroll to bottom when history updates
   useEffect(() => {
@@ -191,6 +191,7 @@ export default function App() {
     setInput("");
     setBusy(true);
     setPauseWarning(false); // Clear pause warning on send
+    setLastResponseTime(null);
 
     // 1) Detect triggers on user text
     const triggers = detectTriggers(userText);
@@ -200,6 +201,7 @@ export default function App() {
     if (main.kind === "CRISIS") {
       const banner = await crisisBanner(setup.zip);
       const coachTip = "I'm just for everyday small talk practice. Please reach out to 988 if you're in crisis.";
+      // For crisis, add both messages together (no LLM delay)
       setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: `I'm here only to practice everyday conversation. ${banner} Would you like to talk about books or coffee?` }]);
       setBusy(false);
       setCooldown(true);
@@ -419,13 +421,16 @@ export default function App() {
       }
     }
 
-    // 4) Build messages for LLM (pass exchange count for phase awareness)
+    // 4) Add user message immediately (show it before Jordan responds)
+    setHistory(h => [...h, { role: "user", content: userText, coachTip }]);
+
+    // 5) Build messages for LLM (pass exchange count for phase awareness)
     const exchangeCount = history.length;
     const sys = buildSystemPrompt(setup.scene, setup.interlocutor, exchangeCount);
     const chatHistory = [...history, { role: "user" as const, content: userText }].map(t => ({ role: t.role, content: t.content }));
     const messages: ChatMessage[] = makeMessages(sys, chatHistory);
 
-    // 5) Call adapter
+    // 6) Call adapter
     let reply = "";
     try {
       if (adapter === "lovable") reply = await lovableChat(messages, chatOpts({ useAdapter: "lovable", scene: setup.scene, interlocutor: setup.interlocutor } as any));
@@ -440,7 +445,7 @@ export default function App() {
       reply = "(Generator unavailable) Let's keep it simple—what's one thing you've been reading or watching lately?";
     }
 
-    // 6) Moderate Jordan's response before showing to user
+    // 7) Moderate Jordan's response before showing to user
     const conversationContext = history.slice(-5).map(h => `${h.role}: ${h.content}`).join("\n");
     const moderation = await moderateJordanResponse(reply, conversationContext, sessionDbId);
     
@@ -449,8 +454,8 @@ export default function App() {
       reply = moderation.finalResponse;
     }
 
-    // 7) Commit (coach tip attached to user message, appears before Jordan's reply)
-    setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: reply }]);
+    // 8) Add Jordan's response separately (user message already visible)
+    setHistory(h => [...h, { role: "assistant", content: reply }]);
     setBusy(false);
     setCooldown(!!coachTip);
   }
@@ -636,13 +641,19 @@ export default function App() {
         {!ended && history.length > 0 && (
           <div className="border-t border-border/50 bg-background/95 backdrop-blur-md px-4 md:px-6 py-5 shrink-0 elevated-shadow">
             <div className="max-w-3xl mx-auto flex gap-3">
-              <Input
+              <Textarea
                 ref={inputRef}
-                className="flex-1 h-14 bg-muted/40 border-border/50 focus:border-primary/50 focus:bg-background text-base px-5 rounded-2xl transition-all"
+                rows={1}
+                className="flex-1 min-h-[56px] max-h-[120px] resize-none bg-muted/40 border-border/50 focus:border-primary/50 focus:bg-background text-base px-5 py-4 rounded-2xl transition-all overflow-y-auto"
                 placeholder="Type your message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }}}
+                onKeyDown={(e) => { 
+                  if (e.key === "Enter" && !e.shiftKey) { 
+                    e.preventDefault(); 
+                    send(); 
+                  }
+                }}
                 disabled={busy}
               />
               <Button
