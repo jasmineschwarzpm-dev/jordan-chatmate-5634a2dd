@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { DEFAULTS, type Scene } from "./constants";
-import { detectTriggers, prioritize, crisisBanner, moderateJordanResponse } from "./guardrails";
+import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { TypingIndicator } from "@/components/TypingIndicator";
 import { CoachTip } from "@/components/CoachTip";
 import { SessionSummary } from "@/components/SessionSummary";
 import { SetupDialog } from "@/components/SetupDialog";
+import { CrisisModal } from "@/components/CrisisModal";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -39,6 +40,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [pauseWarning, setPauseWarning] = useState(false);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
+  const [showCrisisModal, setShowCrisisModal] = useState(false);
 
   // Session logging state
   const [sessionId, setSessionId] = useState<string>("");
@@ -96,6 +98,7 @@ export default function App() {
     setSessionCopied(false);
     setSessionToken("");
     setShowSetup(true);
+    setShowCrisisModal(false);
     localStorage.removeItem("jordan-conversation");
     localStorage.removeItem("jordan-session-token");
   }
@@ -190,21 +193,37 @@ export default function App() {
     const userText = input.trim();
     setInput("");
     setBusy(true);
-    setPauseWarning(false); // Clear pause warning on send
+    setPauseWarning(false);
     setLastResponseTime(null);
 
     // 1) Detect triggers on user text
     const triggers = detectTriggers(userText);
     const main = prioritize(triggers);
 
-    // 2) Crisis: deterministic response + banner; do not call LLM
-    if (main.kind === "CRISIS") {
-      const banner = await crisisBanner(setup.zip);
-      const coachTip = "I'm just for everyday small talk practice. Please reach out to 988 if you're in crisis.";
-      // For crisis, add both messages together (no LLM delay)
-      setHistory(h => [...h, { role: "user", content: userText, coachTip }, { role: "assistant", content: `I'm here only to practice everyday conversation. ${banner} Would you like to talk about books or coffee?` }]);
+    // 2) Crisis: Show crisis modal and terminate session immediately
+    if (shouldTerminateSession(main.kind)) {
+      // Add user message to history (so they can see what triggered it)
+      setHistory(h => [...h, { role: "user", content: userText }]);
+      
+      // Stop conversation and show crisis modal
+      setShowCrisisModal(true);
+      setEnded(true);
       setBusy(false);
-      setCooldown(true);
+      
+      // Update database to mark crisis detected
+      if (sessionDbId) {
+        await supabase
+          .from("sessions")
+          .update({ 
+            crisis_detected: true,
+            ended_at: new Date().toISOString(),
+            total_turns: history.length + 1,
+            transcript: JSON.parse(JSON.stringify([...history, { role: "user", content: userText }])),
+          })
+          .eq("id", sessionDbId)
+          .eq("session_token", sessionToken);
+      }
+      
       return;
     }
 
@@ -518,9 +537,42 @@ export default function App() {
     });
   }
 
+  async function handleCrisisSelection(choice: "support_needed" | "false_positive" | "restart", zip?: string) {
+    // Update database with user's choice
+    if (sessionDbId) {
+      await supabase
+        .from("sessions")
+        .update({ 
+          crisis_user_selection: choice,
+        })
+        .eq("id", sessionDbId)
+        .eq("session_token", sessionToken);
+    }
+
+    // Handle different selections
+    if (choice === "support_needed") {
+      // User wants resources - they can follow the links in the modal
+      // Keep modal open for them to use the resources
+      if (zip) {
+        toast({
+          title: "Local resources",
+          description: `Check the modal for resources in ${zip}. You can also call 988 anytime.`,
+        });
+      }
+    } else if (choice === "false_positive" || choice === "restart") {
+      // User says it was a mistake or wants to restart - close modal and allow new session
+      setShowCrisisModal(false);
+      reset();
+    }
+  }
+
   return (
     <>
       <SetupDialog open={showSetup} onStartConversation={handleStartConversation} />
+      
+      {/* Crisis Modal - System-level intervention */}
+      {showCrisisModal && <CrisisModal onSelection={handleCrisisSelection} />}
+      
       
       {/* Full-Screen Chat Interface - Gen Z Modern Design */}
       <div className="h-screen flex flex-col bg-gradient-to-b from-background to-muted/20">
