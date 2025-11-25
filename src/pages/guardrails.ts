@@ -32,6 +32,10 @@ export function prioritize(triggers: Trigger[]): Trigger {
   return best;
 }
 
+export function shouldTerminateSession(kind: Severity): boolean {
+  return kind === "CRISIS";
+}
+
 export function coachMessageFor(kind: Severity): string | null {
   switch (kind) {
     case "PII":

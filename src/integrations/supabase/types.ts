@@ -98,6 +98,8 @@ export type Database = {
       }
       sessions: {
         Row: {
+          crisis_detected: boolean | null
+          crisis_user_selection: string | null
           ended_at: string | null
           id: string
           interlocutor: string
@@ -110,6 +112,8 @@ export type Database = {
           transcript: Json | null
         }
         Insert: {
+          crisis_detected?: boolean | null
+          crisis_user_selection?: string | null
           ended_at?: string | null
           id?: string
           interlocutor: string
@@ -122,6 +126,8 @@ export type Database = {
           transcript?: Json | null
         }
         Update: {
+          crisis_detected?: boolean | null
+          crisis_user_selection?: string | null
           ended_at?: string | null
           id?: string
           interlocutor?: string
