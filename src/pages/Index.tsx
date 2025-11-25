@@ -236,7 +236,8 @@ export default function App() {
         setHistory(h => [...h, { role: "user", content: userText }]);
         
         if (analysis.severity === "crisis") {
-          // Personal distress detected - show crisis modal
+          // Severe or persistent distress detected - show crisis modal immediately
+          // Do NOT add user message to history - modal takes over
           setShowCrisisModal(true);
           setEnded(true);
           setBusy(false);
@@ -255,9 +256,9 @@ export default function App() {
               .eq("session_token", sessionToken);
           }
           
-          return;
+          return; // Stop here - don't show user message, don't continue conversation
         } else if (analysis.severity === "coaching") {
-          // Borderline or academic mention - add soft coaching hint
+          // First mention or academic discussion - add coaching tip but continue conversation
           coachTip = "That's a heavy or personal topic for casual small talk. Try pivoting to something lighter like hobbies, the scene, or asking Jordan a question.";
         }
         // If "safe", continue normally (no intervention)

@@ -46,6 +46,12 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     return "Topics like politics or religion can derail small talk. Try lighter subjects to build rapport first.";
   }
   
+  // Crisis-adjacent topics (should never reach here if properly handled by Index.tsx crisis flow)
+  // This is a fallback just in case
+  if (triggerKind === "CRISIS") {
+    return "That's a heavy or personal topic for casual small talk. Try pivoting to something lighter like hobbies, the scene, or asking Jordan a question.";
+  }
+  
   // TIER 2: Critical Conversation Errors (High priority)
   
   // Not answering Jordan's direct question

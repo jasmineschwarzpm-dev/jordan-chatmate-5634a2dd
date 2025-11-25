@@ -21,32 +21,41 @@ serve(async (req) => {
       .map((msg: any) => `${msg.role === "user" ? "User" : "Jordan"}: ${msg.content}`)
       .join("\n");
 
-    const systemPrompt = `You are a crisis detection expert for a social anxiety practice app. Analyze the conversation context to determine if the user is expressing personal distress or just discussing a topic academically/casually.
+    const systemPrompt = `You are a crisis detection system for a social anxiety practice app. A potential crisis keyword was detected: "${triggerKeyword}"
 
-CONTEXT TO ANALYZE:
+Your job: Analyze the conversation context and determine the appropriate intervention level:
+
+1. "crisis" - IMMEDIATE intervention needed (show modal):
+   - User expressing PERSONAL suicidal ideation about THEMSELVES
+   - Active self-harm thoughts or plans
+   - Severe acute distress requiring professional help NOW
+   - This is PERSISTENT (second or third mention of crisis topics)
+
+2. "coaching" - Gentle coaching tip needed (first warning):
+   - FIRST mention of heavy/personal topics (suicide, self-harm, death, mental health crisis)
+   - Academic or intellectual discussion about these topics
+   - Discussing mental health of others, not themselves
+   - Reading/learning about these topics (books, articles, etc.)
+   - Vague or indirect language that might indicate distress but isn't explicit
+
+3. "safe" - No intervention needed:
+   - Complete false positive (word used in unrelated context)
+   - Clearly casual or metaphorical use
+   - No connection to mental health distress
+
+RECENT CONVERSATION:
 ${conversationContext}
 
-TRIGGERED KEYWORD: "${triggerKeyword}"
+CRITICAL RULES:
+- FIRST mention of heavy topics → "coaching" (give them a gentle warning first)
+- SECOND/PERSISTENT mention → "crisis" (show the modal)
+- Academic/book discussion → "coaching" (not personal distress)
+- Only flag "crisis" if user expresses PERSONAL distress about THEMSELVES AND it's either severe or persistent
 
-Your task: Determine the severity level based on context.
-
-SEVERITY LEVELS:
-- "crisis": User is expressing personal suicidal thoughts, self-harm ideation, or immediate distress. Examples:
-  * "I want to kill myself"
-  * "I don't want to be here anymore"
-  * "I'm thinking about ending it"
-  
-- "coaching": User mentions sensitive topic but in academic/educational context, OR borderline concerning. Examples:
-  * "Reading a book about suicide survivors"
-  * "I hope to find stories about people who decided to stay" (discussing a book)
-  * "My friend attempted suicide last year" (past tense, about someone else)
-  
-- "safe": Clearly academic, historical, or educational discussion with no personal distress signals.
-
-Return ONLY a JSON object with this structure:
+Return ONLY a JSON object:
 {
   "severity": "crisis" | "coaching" | "safe",
-  "reason": "Brief explanation of why you classified it this way"
+  "reason": "Brief explanation focusing on whether this is first mention vs persistent, personal vs academic"
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
