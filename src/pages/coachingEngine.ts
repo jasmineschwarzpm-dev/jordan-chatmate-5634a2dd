@@ -23,10 +23,71 @@ interface CoachingContext {
   jordanEndedConversation: boolean;
 }
 
+/**
+ * Distress Detection Helper
+ * Returns distress level: 0 = none, 1 = low, 2 = high
+ */
+function detectDistressLevel(text: string): number {
+  const lowerText = text.toLowerCase();
+  
+  // High distress signals
+  const highDistressPatterns = [
+    "can't keep going", "can't go on", "give up", "no point", "want to die",
+    "kill myself", "end it all", "better off dead", "no way out", "can't take it"
+  ];
+  
+  // Low distress signals
+  const lowDistressPatterns = [
+    "struggling", "hard time", "feeling down", "stressed out", "overwhelmed",
+    "depressed", "anxious", "worried", "can't handle", "falling apart",
+    "losing it", "breaking down", "burnt out", "exhausted"
+  ];
+  
+  if (highDistressPatterns.some(pattern => lowerText.includes(pattern))) {
+    return 2;
+  }
+  
+  if (lowDistressPatterns.some(pattern => lowerText.includes(pattern))) {
+    return 1;
+  }
+  
+  return 0;
+}
+
+/**
+ * Check recent conversation for distress trajectory
+ * Returns true if conversation has shifted toward emotional heaviness
+ */
+function hasDescendingTrajectory(history: Turn[], currentText: string): boolean {
+  const recentMessages = [...history.slice(-5), { role: "user" as const, content: currentText }];
+  let distressCount = 0;
+  
+  for (const msg of recentMessages) {
+    if (msg.role === "user" && detectDistressLevel(msg.content) > 0) {
+      distressCount++;
+    }
+  }
+  
+  // If 2+ distress signals in last 5 messages, trajectory is descending
+  return distressCount >= 2;
+}
+
 export function generateCoachTip(context: CoachingContext): string | undefined {
   const { userText, history, triggerKind, cooldown, jordanEndedConversation } = context;
   
   if (cooldown) return undefined;
+  
+  // DISTRESS PRE-FILTER: Check emotional context before any coaching
+  const currentDistress = detectDistressLevel(userText);
+  const hasDistressTrajectory = hasDescendingTrajectory(history, userText);
+  
+  // If user is showing distress, suppress all non-safety coaching
+  if (currentDistress > 0 || hasDistressTrajectory) {
+    // Only allow Tier 1 (Safety) tips to pass through
+    if (triggerKind !== "PII" && triggerKind !== "CONTROVERSIAL" && triggerKind !== "CRISIS") {
+      return undefined; // Suppress all skill-building tips
+    }
+  }
   
   const wordCount = userText.trim().split(/\s+/).length;
   const hasQuestion = /\?/.test(userText);
@@ -128,7 +189,10 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
   
   // No reciprocity - answering without asking back
   if (!jordanEndedConversation && history.length >= 4 && !isGreetingOnly) {
-    if (lastThreeUserMsgs.every(msg => {
+    // Check for distress in recent messages before suggesting skill tips
+    const recentDistress = lastThreeUserMsgs.some(msg => detectDistressLevel(msg.content) > 0);
+    
+    if (!recentDistress && lastThreeUserMsgs.every(msg => {
       const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
       return !msgIsGreeting && !/\?/.test(msg.content);
     })) {
@@ -243,11 +307,20 @@ function checkExitCues(userText: string, history: Turn[], jordanEnded: boolean):
 
 /**
  * Determine if conversation should show stall nudge
+ * Context-aware: checks for distress before suggesting pause
  */
-function shouldStallNudge(history: Turn[]): boolean {
+function shouldStallNudge(history: Turn[], pauseContext?: string): boolean {
   if (history.length < 4) return false;
   
   const lastThreeUser = history.filter(h => h.role === "user").slice(-3);
+  
+  // Check if recent messages contain distress
+  const hasDistress = lastThreeUser.some(msg => detectDistressLevel(msg.content) > 0);
+  
+  // If distress is present, suppress stall nudge entirely
+  // (User may need time to process emotions, not coaching about pausing)
+  if (hasDistress) return false;
+  
   const allBriefAndNoQuestions = lastThreeUser.every(msg => {
     const words = msg.content.trim().split(/\s+/).length;
     const hasQuestion = /\?/.test(msg.content);
