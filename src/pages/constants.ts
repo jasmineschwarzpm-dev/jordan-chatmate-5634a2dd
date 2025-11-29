@@ -7,13 +7,21 @@ export const DEFAULTS = {
 };
 
 // Guardrail patterns
+// PHASE 1 EXPANSION: Added missing variations and common slang
 export const CRISIS_KEYWORDS = [
-  // Explicit crisis language
-  "suicide", "kill myself", "end it all", "self-harm", "hurt myself", "want to die", "ending my life",
+  // Explicit crisis language (with variations)
+  "suicide", "suicidal", "suicid", "kill myself", "end it all", "end my life", 
+  "self-harm", "self harm", "hurt myself", "want to die", "wanna die", "ending my life",
+  "off myself", "better off dead",
+  
+  // Internet slang
+  "kms", "kys", "unalive", "unaliving",
+  
   // Distress signals that indicate potential crisis
   "can't find a reason", "no reason to", "can't keep going", "can't go on", "give up on life", 
-  "no point in living", "tired of living", "better off dead", "don't want to be here", 
-  "end my suffering", "escape this pain", "no way out", "can't take it anymore"
+  "no point in living", "no point", "tired of living", "don't want to be here", 
+  "end my suffering", "end the suffering", "escape this pain", "no way out", "can't take it anymore",
+  "can't take it", "hopeless", "no hope"
 ];
 export const CONTROVERSIAL_KEYWORDS = ["politics", "religion", "trump", "biden", "abortion", "gun control", "immigration", "sex", "sexual"];
 export const INSULT_KEYWORDS = ["weird", "stupid", "dumb", "idiotic", "lame", "loser", "pathetic", "ridiculous", "absurd", "crazy for liking", "insane for liking", "nerdy", "geeky", "uncool"];

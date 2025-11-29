@@ -7,6 +7,48 @@ import {
 
 export type Trigger = { kind: Severity; reason: string };
 
+/**
+ * Lightweight distress pre-screening (Phase 1: Semantic Pre-Screening)
+ * Returns true if message contains ANY concerning language that warrants LLM analysis.
+ * This is NOT a definitive crisis detector - it's a gate to decide "should we analyze this?"
+ * 
+ * Includes:
+ * - Direct crisis language (suicide, self-harm)
+ * - Indirect distress signals (hopeless, giving up, no point)
+ * - Common variations and slang
+ */
+export function detectDistressSignals(text: string): boolean {
+  const lowerText = text.toLowerCase();
+  
+  // High distress signals - warrant immediate LLM analysis
+  const highDistressPatterns = [
+    // Suicide-related (with variations)
+    "suicid", "kill myself", "end it all", "end my life", "ending my life",
+    "off myself", "hurt myself", "self-harm", "self harm",
+    "want to die", "wanna die", "better off dead",
+    
+    // Internet slang
+    "kms", "kys", "unalive", "unaliving",
+    
+    // Hopelessness indicators
+    "no point", "no reason to", "can't keep going", "can't go on",
+    "give up on life", "giving up on life", "no way out", "can't take it",
+    "escape this pain", "end my suffering", "end the suffering"
+  ];
+  
+  // Low-medium distress signals - still warrant analysis
+  const mediumDistressPatterns = [
+    "suicidal thoughts", "suicidal ideation", "thoughts of suicide",
+    "hopeless", "no hope", "lost hope", "can't find a reason",
+    "tired of living", "don't want to be here", "can't handle this anymore",
+    "falling apart", "breaking down", "can't do this", "done with everything"
+  ];
+  
+  // Check all patterns
+  const allPatterns = [...highDistressPatterns, ...mediumDistressPatterns];
+  return allPatterns.some(pattern => lowerText.includes(pattern));
+}
+
 export function detectTriggers(text: string): Trigger[] {
   const t = text.toLowerCase();
   const hits: Trigger[] = [];
