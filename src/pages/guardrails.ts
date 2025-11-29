@@ -1,52 +1,89 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  CRISIS_KEYWORDS, CONTROVERSIAL_KEYWORDS, INSULT_KEYWORDS,
+  CRISIS_KEYWORDS, TIER_1_CRISIS_KEYWORDS, TIER_2_DISTRESS_KEYWORDS,
+  CONTROVERSIAL_KEYWORDS, INSULT_KEYWORDS,
   EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE,
-  SEVERITY_ORDER, type Severity
+  SEVERITY_ORDER, type Severity, type DistressSeverity
 } from "./constants";
 
 export type Trigger = { kind: Severity; reason: string };
 
 /**
- * Lightweight distress pre-screening (Phase 1: Semantic Pre-Screening)
- * Returns true if message contains ANY concerning language that warrants LLM analysis.
- * This is NOT a definitive crisis detector - it's a gate to decide "should we analyze this?"
+ * Three-tiered distress analysis (Manus Research Implementation)
  * 
- * Includes:
- * - Direct crisis language (suicide, self-harm)
- * - Indirect distress signals (hopeless, giving up, no point)
- * - Common variations and slang
+ * Tier 1: Explicit crisis language → returns 'high' immediately
+ * Tier 2: Ambiguous distress + accumulation check → returns 'low' if threshold met
+ * Tier 3: Sentiment analysis for Tier 2 (future enhancement)
+ * 
+ * @param text Current user message
+ * @param tier2Count Accumulated Tier 2 signals from conversation history
+ * @returns DistressSeverity and whether a Tier 2 keyword was found
+ */
+export function analyzeDistress(
+  text: string, 
+  tier2Count: number = 0
+): { severity: DistressSeverity; foundTier2: boolean; matchedKeywords: string[] } {
+  const lowerText = text.toLowerCase();
+  const matchedKeywords: string[] = [];
+  
+  // TIER 1 CHECK: Explicit crisis language → immediate 'high'
+  for (const keyword of TIER_1_CRISIS_KEYWORDS) {
+    if (lowerText.includes(keyword)) {
+      matchedKeywords.push(keyword);
+      return { severity: "high", foundTier2: false, matchedKeywords };
+    }
+  }
+  
+  // TIER 2 CHECK: Ambiguous distress signals
+  let foundTier2 = false;
+  for (const keyword of TIER_2_DISTRESS_KEYWORDS) {
+    if (lowerText.includes(keyword)) {
+      matchedKeywords.push(keyword);
+      foundTier2 = true;
+    }
+  }
+  
+  if (foundTier2) {
+    // Check accumulation: if this is 2nd+ Tier 2 signal, elevate to 'low'
+    const newCount = tier2Count + 1;
+    if (newCount >= 2) {
+      return { severity: "low", foundTier2: true, matchedKeywords };
+    }
+    
+    // TIER 3 PLACEHOLDER: Sentiment analysis would go here
+    // For now, single Tier 2 signal returns 'none' but tracks the signal
+    return { severity: "none", foundTier2: true, matchedKeywords };
+  }
+  
+  return { severity: "none", foundTier2: false, matchedKeywords: [] };
+}
+
+/**
+ * Count Tier 2 signals in conversation history
+ */
+export function countTier2SignalsInHistory(history: Array<{role: string; content: string}>): number {
+  let count = 0;
+  for (const turn of history) {
+    if (turn.role === "user") {
+      const lowerText = turn.content.toLowerCase();
+      for (const keyword of TIER_2_DISTRESS_KEYWORDS) {
+        if (lowerText.includes(keyword)) {
+          count++;
+          break; // Only count once per message
+        }
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * DEPRECATED: Use analyzeDistress() instead
+ * Kept for backward compatibility
  */
 export function detectDistressSignals(text: string): boolean {
-  const lowerText = text.toLowerCase();
-  
-  // High distress signals - warrant immediate LLM analysis
-  const highDistressPatterns = [
-    // Suicide-related (with variations)
-    "suicid", "kill myself", "end it all", "end my life", "ending my life",
-    "off myself", "hurt myself", "self-harm", "self harm",
-    "want to die", "wanna die", "better off dead",
-    
-    // Internet slang
-    "kms", "kys", "unalive", "unaliving",
-    
-    // Hopelessness indicators
-    "no point", "no reason to", "can't keep going", "can't go on",
-    "give up on life", "giving up on life", "no way out", "can't take it",
-    "escape this pain", "end my suffering", "end the suffering"
-  ];
-  
-  // Low-medium distress signals - still warrant analysis
-  const mediumDistressPatterns = [
-    "suicidal thoughts", "suicidal ideation", "thoughts of suicide",
-    "hopeless", "no hope", "lost hope", "can't find a reason",
-    "tired of living", "don't want to be here", "can't handle this anymore",
-    "falling apart", "breaking down", "can't do this", "done with everything"
-  ];
-  
-  // Check all patterns
-  const allPatterns = [...highDistressPatterns, ...mediumDistressPatterns];
-  return allPatterns.some(pattern => lowerText.includes(pattern));
+  const { severity, foundTier2 } = analyzeDistress(text, 0);
+  return severity === "high" || foundTier2;
 }
 
 export function detectTriggers(text: string): Trigger[] {
