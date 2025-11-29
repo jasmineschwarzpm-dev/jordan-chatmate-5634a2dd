@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { DEFAULTS, type Scene } from "./constants";
-import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse } from "./guardrails";
+import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse, detectDistressSignals } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { generateCoachTip } from "./coachingEngine";
@@ -205,7 +205,10 @@ export default function App() {
     let coachTip: string | undefined;
 
     // 2) Crisis: Use LLM to analyze context before showing crisis modal
-    if (shouldTerminateSession(main.kind)) {
+    // PHASE 1 FIX: Semantic pre-screening - call LLM for ANY distress signal, not just keyword matches
+    const hasDistressSignals = detectDistressSignals(userText);
+    
+    if (shouldTerminateSession(main.kind) || hasDistressSignals) {
       // Build recent conversation context (last 5 messages)
       const recentMessages = history.slice(-5).map(h => ({
         role: h.role,
