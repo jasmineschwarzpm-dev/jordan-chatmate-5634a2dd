@@ -6,23 +6,52 @@ export const DEFAULTS = {
   interlocutor: "neutral" as const,
 };
 
-// Guardrail patterns
-// PHASE 1 EXPANSION: Added missing variations and common slang
-export const CRISIS_KEYWORDS = [
-  // Explicit crisis language (with variations)
-  "suicide", "suicidal", "suicid", "kill myself", "end it all", "end my life", 
-  "self-harm", "self harm", "hurt myself", "want to die", "wanna die", "ending my life",
-  "off myself", "better off dead",
+// Guardrail patterns - Three-tiered crisis detection system
+// TIER 1: Explicit, high-risk - trigger immediate LLM analysis
+export const TIER_1_CRISIS_KEYWORDS = [
+  // Explicit suicidal language
+  "suicide", "suicidal", "suicid", "kill myself", "end it all", "end my life",
+  "off myself", "want to die", "wanna die", "ending my life",
   
-  // Internet slang
+  // Self-harm
+  "self-harm", "self harm", "hurt myself", "cutting myself",
+  
+  // Internet slang (explicit)
   "kms", "kys", "unalive", "unaliving",
   
-  // Distress signals that indicate potential crisis
-  "can't find a reason", "no reason to", "can't keep going", "can't go on", "give up on life", 
-  "no point in living", "no point", "tired of living", "don't want to be here", 
-  "end my suffering", "end the suffering", "escape this pain", "no way out", "can't take it anymore",
-  "can't take it", "hopeless", "no hope"
+  // Better off dead variants
+  "better off dead", "should be dead", "deserve to die"
 ];
+
+// TIER 2: Ambiguous distress signals - accumulate or analyze sentiment
+export const TIER_2_DISTRESS_KEYWORDS = [
+  // Hopelessness (ambiguous)
+  "hopeless", "no hope", "lost hope", "no point", "no reason to",
+  "can't keep going", "can't go on", "give up", "giving up",
+  
+  // Finality language (caught "bye forever")
+  "bye forever", "goodbye forever", "final goodbye", "last time",
+  "won't see me again", "this is it",
+  
+  // Staying/reason language (caught "inspiration to stay")
+  "reason to stay", "inspiration to stay", "why I stay", "keep going",
+  "reasons to live", "worth living",
+  
+  // Isolation indicators
+  "no one will miss", "better without me", "won't matter",
+  "no one cares", "alone in this",
+  
+  // Exhaustion/giving up
+  "tired of living", "tired of trying", "don't want to be here",
+  "can't handle this", "can't take it", "done with everything",
+  "falling apart", "breaking down", "escape this pain",
+  
+  // Seeking help signals
+  "stories of hope", "stories of survival", "need help"
+];
+
+// Legacy keyword list (kept for backward compatibility with existing trigger detection)
+export const CRISIS_KEYWORDS = [...TIER_1_CRISIS_KEYWORDS, ...TIER_2_DISTRESS_KEYWORDS];
 export const CONTROVERSIAL_KEYWORDS = ["politics", "religion", "trump", "biden", "abortion", "gun control", "immigration", "sex", "sexual"];
 export const INSULT_KEYWORDS = ["weird", "stupid", "dumb", "idiotic", "lame", "loser", "pathetic", "ridiculous", "absurd", "crazy for liking", "insane for liking", "nerdy", "geeky", "uncool"];
 
@@ -33,3 +62,6 @@ export const ADDRESS_RE = /\b\d+\s+[A-Za-z\s]+(?:street|st|avenue|ave|road|rd|bo
 
 export type Severity = "CRISIS" | "PII" | "CONTROVERSIAL" | "INSULT" | "COACHING" | "NONE";
 export const SEVERITY_ORDER: Severity[] = ["CRISIS", "PII", "CONTROVERSIAL", "INSULT", "COACHING", "NONE"];
+
+// Distress severity levels for tiered crisis detection
+export type DistressSeverity = "high" | "low" | "none";

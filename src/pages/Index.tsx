@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { DEFAULTS, type Scene } from "./constants";
-import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse, detectDistressSignals } from "./guardrails";
+import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse, analyzeDistress, countTier2SignalsInHistory } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
 import { generateCoachTip } from "./coachingEngine";
@@ -204,26 +204,45 @@ export default function App() {
     // Initialize coachTip early (may be set by crisis analysis)
     let coachTip: string | undefined;
 
-    // 2) Crisis: Use LLM to analyze context before showing crisis modal
-    // PHASE 1 FIX: Semantic pre-screening - call LLM for ANY distress signal, not just keyword matches
-    const hasDistressSignals = detectDistressSignals(userText);
-    
-    if (shouldTerminateSession(main.kind) || hasDistressSignals) {
-      // Build recent conversation context (last 5 messages)
+    // 2) Three-tiered distress analysis (Manus Research Implementation)
+    const tier2Count = countTier2SignalsInHistory(history);
+    const distressAnalysis = analyzeDistress(userText, tier2Count);
+
+    console.log("Distress analysis:", {
+      severity: distressAnalysis.severity,
+      tier2Count,
+      foundTier2: distressAnalysis.foundTier2,
+      matchedKeywords: distressAnalysis.matchedKeywords
+    });
+
+    // Trigger LLM analysis if:
+    // - Tier 1 hit (severity = 'high'), OR
+    // - Accumulated Tier 2 signals (severity = 'low'), OR
+    // - Legacy keyword match (shouldTerminateSession)
+    const shouldAnalyze = 
+      distressAnalysis.severity === "high" || 
+      distressAnalysis.severity === "low" ||
+      shouldTerminateSession(main.kind);
+
+    if (shouldAnalyze) {
+      // Build recent conversation context with Tier 2 signal metadata
       const recentMessages = history.slice(-5).map(h => ({
         role: h.role,
         content: h.content
       }));
-      
-      // Add current user message to context
       recentMessages.push({ role: "user", content: userText });
       
       try {
-        // Call LLM to analyze crisis context
+        // Call LLM to analyze crisis context with tiered metadata
         const { data: analysis, error } = await supabase.functions.invoke("analyze-crisis-context", {
           body: { 
             recentMessages,
-            triggerKeyword: triggers.find(t => t.kind === "CRISIS")?.reason || "crisis"
+            triggerKeyword: distressAnalysis.matchedKeywords.join(", ") || "distress signal",
+            distressMetadata: {
+              tier: distressAnalysis.severity === "high" ? 1 : 2,
+              accumulatedTier2Count: tier2Count + (distressAnalysis.foundTier2 ? 1 : 0),
+              matchedKeywords: distressAnalysis.matchedKeywords
+            }
           }
         });
         
