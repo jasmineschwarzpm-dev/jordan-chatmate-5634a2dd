@@ -7,7 +7,15 @@
  * 3. Educational - Explain WHY, not just WHAT
  * 4. Respectful - Assume competence, offer support
  * 5. Progressive - Reduce guidance as user improves
+ * 6. Gen Z Focused - Address common small talk gaps for 18-24 year olds
  */
+
+import {
+  INTRODUCTION_PATTERNS,
+  ACKNOWLEDGMENT_WORDS,
+  DEFLECTION_PATTERNS,
+  MINIMAL_RESPONSE_PATTERNS,
+} from "./constants";
 
 interface Turn {
   role: "user" | "assistant";
@@ -132,6 +140,13 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
   
   // TIER 2: Critical Conversation Errors (High priority)
   
+  // *** NEW: Self-Introduction Check ***
+  // If Jordan introduced themselves and user hasn't shared their name
+  if (history.length >= 1 && history.length <= 3) {
+    const selfIntroTip = checkSelfIntroduction(userText, history);
+    if (selfIntroTip) return selfIntroTip;
+  }
+  
   // Not answering Jordan's direct question
   if (history.length >= 2) {
     const lastJordan = history[history.length - 1];
@@ -142,14 +157,14 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
       
       // Check if user is clearly changing topic (greeting only or unrelated)
       if (isGreetingOnly) {
-        return "Jordan just asked you something. Try answering before greeting again.";
+        return "Jordan just asked you something — try answering before greeting again.";
       }
       
       // Check if user is asking a new question instead of answering
       if (hasQuestion && wordCount < 15) {
         const isDeflecting = !questionWords?.some(qw => userLower.includes(qw));
         if (isDeflecting) {
-          return "You asked a question without answering Jordan's first. In conversations, answering before asking shows you're listening.";
+          return "You asked a question without answering Jordan's first. Answering first shows you're listening — it builds trust.";
         }
       }
     }
@@ -175,6 +190,27 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
   
   // TIER 3: Conversation Flow Issues (Medium priority)
   
+  // *** NEW: Active Listening Check ***
+  // User asked a question without acknowledging what Jordan said
+  if (history.length >= 2 && hasQuestion) {
+    const activeListeningTip = checkActiveListening(userText, history);
+    if (activeListeningTip) return activeListeningTip;
+  }
+  
+  // *** NEW: Build on the Share Check ***
+  // Jordan shared something personal and user gave minimal response
+  if (history.length >= 2) {
+    const buildOnShareTip = checkBuildOnShare(userText, history);
+    if (buildOnShareTip) return buildOnShareTip;
+  }
+  
+  // *** NEW: Improved Deflection Detection ***
+  // User deflecting with minimal "you?" type responses
+  if (history.length >= 2) {
+    const deflectionTip = checkDeflection(userText, history);
+    if (deflectionTip) return deflectionTip;
+  }
+  
   // Jordan is winding down but user isn't picking up on it
   if (history.length >= 3) {
     const exitTip = checkExitCues(userText, history, jordanEndedConversation);
@@ -187,9 +223,9 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     const jordanAskedQuestion = /\?/.test(lastJordan);
     
     if (jordanAskedQuestion) {
-      return "Stuck? Try: 'I haven't thought about that — what about you?' or pivot with a related question.";
+      return "Feeling stuck? Try: 'Hmm, I haven't thought about that — what about you?' It's okay to redirect.";
     } else {
-      return "Not sure what to say? Ask Jordan to elaborate: 'How'd you get into that?' or 'What do you like about it?'";
+      return "Not sure what to say? Ask Jordan to share more: 'How'd you get into that?' shows genuine curiosity.";
     }
   }
   
@@ -199,7 +235,7 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     if (lastThreeQuestions.length >= 3) {
       const hasSharedRecently = lastThreeUserMsgs.some(msg => msg.content.trim().split(/\s+/).length > 15);
       if (!hasSharedRecently) {
-        return "Balance is key — share a bit about yourself between questions to avoid feeling like an interview.";
+        return "You're asking great questions! Balance it out by sharing something about yourself — conversations feel more natural when both people open up.";
       }
     }
   }
@@ -213,33 +249,160 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
       const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
       return !msgIsGreeting && !/\?/.test(msg.content);
     })) {
-      return "Conversations flow both ways. After sharing, ask Jordan something to keep the exchange balanced.";
+      return "Conversations flow both ways — after sharing, try asking Jordan something. People enjoy being asked about themselves.";
     }
   }
   
   // TIER 4: Skill Development Tips (Lower priority - only show occasionally)
   
-  // Milestone check-ins (only at specific conversation lengths)
+  // Milestone check-ins (pattern-aware, not just exchange count)
+  if (history.length === 3) {
+    // Early milestone: Check if user has asked Jordan anything yet
+    const userHasAskedQuestion = userMessages.some(msg => /\?/.test(msg.content));
+    if (!userHasAskedQuestion && !hasQuestion) {
+      return "You haven't asked Jordan anything yet — people enjoy being asked about themselves. Try 'What about you?' or 'How about you?'";
+    }
+  }
+  
   if (history.length === 5) {
-    return "You're building momentum! Notice how Jordan responds when you ask open-ended questions vs yes/no questions.";
+    return "You're getting into a rhythm! Notice how open-ended questions ('What do you think about...?') invite more interesting answers than yes/no questions.";
   }
   
   if (history.length === 8) {
-    return "Small talk often wraps up around now. Watch for Jordan's exit cues like 'I should get going' or 'Nice talking to you.'";
+    return "Conversations often wrap up around now. Watch for exit cues like 'I should get going' — they're invitations to say goodbye gracefully.";
   }
   
   // Length coaching (only when extreme)
   if (wordCount < 3 && !isGreetingOnly && history.length > 2) {
-    return "Very brief responses can signal disinterest. Add a sentence or ask a question to keep energy up.";
+    return "Brief responses can feel like disinterest. Try adding a thought or question — even 'Nice! What got you into that?' keeps energy up.";
   }
   
   if (wordCount > 60 && !hasQuestion && history.length > 1) {
-    return "Long answers are great! Balance them by ending with a question to invite Jordan back in.";
+    return "Great detail! End with a question like 'What do you think?' to invite Jordan back into the conversation.";
   }
   
   // First message overshare
   if (history.length === 1 && wordCount > 50) {
-    return "Strong opener! In quick small talk, shorter initial responses (2-3 sentences) feel more natural.";
+    return "Nice opener! In casual small talk, shorter first responses (2-3 sentences) leave room for back-and-forth to develop naturally.";
+  }
+  
+  return undefined;
+}
+
+/**
+ * NEW: Check if user should introduce themselves after Jordan did
+ */
+function checkSelfIntroduction(userText: string, history: Turn[]): string | undefined {
+  // Only check in first few exchanges
+  if (history.length === 0 || history.length > 3) return undefined;
+  
+  // Check if Jordan's first message introduced themselves
+  const jordanFirstMsg = history.find(h => h.role === "assistant")?.content || "";
+  const jordanIntroduced = INTRODUCTION_PATTERNS.jordanIntro.test(jordanFirstMsg);
+  
+  if (!jordanIntroduced) return undefined;
+  
+  // Check if user has shared their name in any of their messages
+  const allUserMessages = history.filter(h => h.role === "user").map(h => h.content);
+  allUserMessages.push(userText);
+  
+  const userIntroduced = allUserMessages.some(msg => 
+    INTRODUCTION_PATTERNS.userIntro.test(msg) || 
+    INTRODUCTION_PATTERNS.casualNameShare.test(msg)
+  );
+  
+  if (!userIntroduced && history.length >= 1) {
+    return "Jordan introduced themselves — sharing your name back is a natural way to connect. Try 'I'm [name]' or weave it in naturally.";
+  }
+  
+  return undefined;
+}
+
+/**
+ * NEW: Check if user is asking without acknowledging what Jordan said
+ */
+function checkActiveListening(userText: string, history: Turn[]): string | undefined {
+  if (history.length < 2) return undefined;
+  
+  const lastJordan = history[history.length - 1];
+  if (lastJordan?.role !== "assistant") return undefined;
+  
+  // If Jordan asked a question, user asking back is expected
+  if (/\?/.test(lastJordan.content)) return undefined;
+  
+  // Jordan made a statement (no question) - user should acknowledge before asking new question
+  const userAsksWithoutAcknowledging = /\?/.test(userText);
+  if (!userAsksWithoutAcknowledging) return undefined;
+  
+  const userLower = userText.toLowerCase().trim();
+  
+  // Check if user acknowledged Jordan's statement
+  const hasAcknowledgment = ACKNOWLEDGMENT_WORDS.some(word => {
+    const pattern = new RegExp(`\\b${word}\\b`, 'i');
+    return pattern.test(userLower);
+  });
+  
+  // If they acknowledged AND asked, that's great - no tip needed
+  if (hasAcknowledgment) return undefined;
+  
+  // User jumped straight to a question without acknowledging
+  const wordCount = userText.trim().split(/\s+/).length;
+  if (wordCount < 10) { // Short question with no acknowledgment
+    return "Try acknowledging what Jordan said before asking your question — 'Oh cool!' or 'Nice!' makes the conversation feel warmer.";
+  }
+  
+  return undefined;
+}
+
+/**
+ * NEW: Check if user gave minimal response to Jordan's personal share
+ */
+function checkBuildOnShare(userText: string, history: Turn[]): string | undefined {
+  if (history.length < 2) return undefined;
+  
+  const lastJordan = history[history.length - 1];
+  if (lastJordan?.role !== "assistant") return undefined;
+  
+  const jordanContent = lastJordan.content.toLowerCase();
+  
+  // Check if Jordan shared something personal (uses first person)
+  const jordanSharedPersonal = /\b(i|i'm|i've|my|i'd|i'll)\s+\w+/i.test(jordanContent);
+  if (!jordanSharedPersonal) return undefined;
+  
+  // Check if user's response is minimal
+  const userLower = userText.toLowerCase().trim();
+  const isMinimalResponse = MINIMAL_RESPONSE_PATTERNS.some(pattern => pattern.test(userLower));
+  
+  // Also check word count
+  const wordCount = userText.trim().split(/\s+/).length;
+  const hasQuestion = /\?/.test(userText);
+  
+  if ((isMinimalResponse || wordCount <= 3) && !hasQuestion) {
+    return "Jordan shared something about themselves — try asking a follow-up like 'How'd you get into that?' to show you're interested.";
+  }
+  
+  return undefined;
+}
+
+/**
+ * NEW: Check for low-effort deflection responses
+ */
+function checkDeflection(userText: string, history: Turn[]): string | undefined {
+  if (history.length < 2) return undefined;
+  
+  const lastJordan = history[history.length - 1];
+  if (lastJordan?.role !== "assistant") return undefined;
+  
+  // Check if Jordan asked a question
+  if (!/\?/.test(lastJordan.content)) return undefined;
+  
+  const userLower = userText.toLowerCase().trim();
+  
+  // Check if user is deflecting with minimal question-back
+  const isDeflecting = DEFLECTION_PATTERNS.some(pattern => pattern.test(userLower));
+  
+  if (isDeflecting) {
+    return "Good instinct to ask back! Try adding your own thought first — 'I usually go with X. You?' makes it more of an exchange.";
   }
   
   return undefined;
@@ -273,7 +436,7 @@ function checkRepeatedQuestion(userText: string, history: Turn[]): string | unde
     });
     
     if (alreadyAnswered) {
-      return "Jordan mentioned this earlier. Asking again suggests you weren't listening — try a new question instead.";
+      return "Jordan already mentioned this — asking again can seem like you weren't listening. Try building on what they said instead.";
     }
   }
   
@@ -313,9 +476,9 @@ function checkExitCues(userText: string, history: Turn[], jordanEnded: boolean):
   
   if (exitCueFound && !userWindingDown) {
     if (exitType === "leaving" || exitType === "farewell") {
-      return "Jordan is signaling they're wrapping up. Respond with a friendly goodbye like 'Nice talking to you!' or 'Take care!'";
+      return "Jordan is signaling they're wrapping up — a friendly 'Nice talking to you!' or 'Take care!' is a natural way to close.";
     } else {
-      return "Jordan's tone is shifting toward an exit. Acknowledge it or start your own goodbye to end naturally.";
+      return "Jordan's tone is shifting toward an exit. Acknowledge it or start your own goodbye to wrap up gracefully.";
     }
   }
   
@@ -326,7 +489,7 @@ function checkExitCues(userText: string, history: Turn[], jordanEnded: boolean):
  * Determine if conversation should show stall nudge
  * Context-aware: checks for distress before suggesting pause
  */
-function shouldStallNudge(history: Turn[], pauseContext?: string): boolean {
+export function shouldStallNudge(history: Turn[], pauseContext?: string): boolean {
   if (history.length < 4) return false;
   
   const lastThreeUser = history.filter(h => h.role === "user").slice(-3);
