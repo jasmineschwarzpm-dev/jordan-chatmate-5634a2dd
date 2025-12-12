@@ -65,3 +65,36 @@ export const SEVERITY_ORDER: Severity[] = ["CRISIS", "PII", "CONTROVERSIAL", "IN
 
 // Distress severity levels for tiered crisis detection
 export type DistressSeverity = "high" | "low" | "none";
+
+// ============= GEN Z SMALL TALK PATTERNS =============
+// Patterns for detecting self-introductions
+export const INTRODUCTION_PATTERNS = {
+  jordanIntro: /\b(i'm jordan|i am jordan|name's jordan|name is jordan)\b/i,
+  userIntro: /\b(i'm|i am|my name is|my name's|call me|they call me|people call me)\s+\w+/i,
+  casualNameShare: /^(hey,?\s*)?(i'm|im)\s+\w+[.!]?$/i,
+};
+
+// Words that acknowledge what someone said (active listening signals)
+export const ACKNOWLEDGMENT_WORDS = [
+  "cool", "nice", "neat", "awesome", "interesting", "oh", "yeah", "yea",
+  "wow", "really", "true", "right", "for sure", "totally", "same",
+  "gotcha", "makes sense", "i see", "that's cool", "that's awesome",
+  "sounds good", "sounds fun", "sounds like", "ah", "huh", "oh wow"
+];
+
+// Minimal deflection patterns (low-effort question-backs)
+export const DEFLECTION_PATTERNS = [
+  /^you\??$/i,
+  /^(what about|how about|and) you\??$/i,
+  /^(you|u)\s*(too|2)?\??$/i,
+  /^hbu\??$/i,  // "how about you" abbreviation
+  /^wbu\??$/i,  // "what about you" abbreviation
+  /^same[,.]?\s*(you|u)\??$/i,
+];
+
+// Minimal response patterns (under 4 words, no real engagement)
+export const MINIMAL_RESPONSE_PATTERNS = [
+  /^(cool|nice|neat|awesome|interesting|ok|okay|k|kk|yeah|yea|yep|nope|mhm|lol|lmao|haha|true|facts|bet|word|same|mood|vibes|lit|fire|slaps|based)[.!]*$/i,
+  /^(that's|thats)\s*(cool|nice|awesome|dope|lit|fire)[.!]*$/i,
+  /^(sounds|seems)\s*(good|cool|fun|nice)[.!]*$/i,
+];
