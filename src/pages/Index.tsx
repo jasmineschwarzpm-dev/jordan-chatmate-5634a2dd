@@ -85,9 +85,37 @@ export default function App() {
     }
   }, [history, sessionDbId]);
 
+  // Cleanup on page close/navigate - mark session as abandoned
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sessionDbId && sessionToken && history.length > 0 && !ended) {
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/session-cleanup`,
+          JSON.stringify({ sessionDbId, sessionToken })
+        );
+      }
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [sessionDbId, sessionToken, history.length, ended]);
+
   const summary = useMemo(() => makeSummary(history), [history]);
 
-  function reset() { 
+  async function reset() { 
+    // Mark current session as completed/abandoned before resetting
+    if (sessionDbId && sessionToken && history.length > 0 && !ended) {
+      await supabase.from("session_metadata").update({
+        completion_status: "completed",
+        session_token: sessionToken,
+      }).eq("session_id", sessionDbId).eq("session_token", sessionToken);
+      
+      await supabase.from("sessions").update({
+        ended_at: new Date().toISOString(),
+        session_token: sessionToken,
+      }).eq("id", sessionDbId).eq("session_token", sessionToken);
+    }
+    
     setHistory([]); 
     setInput(""); 
     setEnded(false); 
