@@ -630,9 +630,9 @@ export default function App() {
 // --- Helpers ---
 function openingLine(scene: Scene) {
   switch(scene){
-    case "coffee": return "Hey — this line moves fast here. What do you usually order?";
-    case "campus": return "Orientation's wild. What are you hoping to check out first?";
-    default: return "That stack looks good — anything you'd recommend?";
+    case "coffee": return "Hey! I'm Jordan. This line moves pretty fast here. What do you usually order?";
+    case "campus": return "Hey! I'm Jordan. Orientation's wild, right? What are you hoping to check out first?";
+    default: return "Hey! I'm Jordan. That stack looks good — anything you'd recommend?";
   }
 }
 

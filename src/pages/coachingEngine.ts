@@ -75,7 +75,24 @@ function hasDescendingTrajectory(history: Turn[], currentText: string): boolean 
 export function generateCoachTip(context: CoachingContext): string | undefined {
   const { userText, history, triggerKind, cooldown, jordanEndedConversation } = context;
   
+  // Cooldown from previous tip
   if (cooldown) return undefined;
+  
+  // Rate limiting: Don't show more than 3 tips in a session
+  const tipCount = history.filter(h => h.coachTip).length;
+  if (tipCount >= 4) {
+    // Only allow safety tips after 4 tips shown
+    if (triggerKind !== "PII" && triggerKind !== "CONTROVERSIAL" && triggerKind !== "CRISIS") {
+      return undefined;
+    }
+  }
+  
+  // Spacing: Require at least 2 exchanges between tips (except safety tips)
+  const recentHistory = history.slice(-3);
+  const recentTipCount = recentHistory.filter(h => h.coachTip).length;
+  if (recentTipCount > 0 && triggerKind !== "PII" && triggerKind !== "CONTROVERSIAL" && triggerKind !== "CRISIS") {
+    return undefined;
+  }
   
   // DISTRESS PRE-FILTER: Check emotional context before any coaching
   const currentDistress = detectDistressLevel(userText);
