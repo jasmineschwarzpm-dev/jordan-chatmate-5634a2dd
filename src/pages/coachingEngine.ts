@@ -173,9 +173,9 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     const jordanAskedQuestion = /\?/.test(lastJordan);
     
     if (jordanAskedQuestion) {
-      return "Repeated greetings can stall conversation. Answer Jordan's question to keep things moving.";
+      return "Tip: Jordan asked you something — this is a great opening to share a bit about yourself!";
     } else {
-      return "Add substance after the greeting — share a thought or ask a question to invite dialogue.";
+      return "Tip: after 'hey', try adding a thought or question to get the conversation rolling.";
     }
   }
   
@@ -232,7 +232,7 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     if (lastThreeQuestions.length >= 3) {
       const hasSharedRecently = lastThreeUserMsgs.some(msg => msg.content.trim().split(/\s+/).length > 15);
       if (!hasSharedRecently) {
-        return "You're asking great questions! Balance it out by sharing something about yourself — conversations feel more natural when both people open up.";
+        return "Nice — you're curious! Mixing in something about yourself can make it feel more like a two-way chat.";
       }
     }
   }
@@ -246,7 +246,7 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
       const msgIsGreeting = greetingOnlyPattern.test(msg.content.toLowerCase()) && msg.content.trim().split(/\s+/).length < 3;
       return !msgIsGreeting && !/\?/.test(msg.content);
     })) {
-      return "Conversations flow both ways — after sharing, try asking Jordan something. People enjoy being asked about themselves.";
+      return "Tip: tossing a question back to Jordan — like 'what about you?' — keeps the energy flowing both ways.";
     }
   }
   
@@ -257,7 +257,7 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
     // Early milestone: Check if user has asked Jordan anything yet
     const userHasAskedQuestion = userMessages.some(msg => /\?/.test(msg.content));
     if (!userHasAskedQuestion && !hasQuestion) {
-      return "You haven't asked Jordan anything yet — people enjoy being asked about themselves. Try 'What about you?' or 'How about you?'";
+      return "Tip: people love being asked about themselves — a simple 'what about you?' can open things up.";
     }
   }
   
@@ -271,7 +271,7 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
   
   // Length coaching (only when extreme)
   if (wordCount < 3 && !isGreetingOnly && history.length > 2) {
-    return "Brief responses can feel like disinterest. Try adding a thought or question — even 'Nice! What got you into that?' keeps energy up.";
+    return "Tip: adding a quick thought or follow-up question — like 'Nice! What got you into that?' — can help keep the momentum going.";
   }
   
   if (wordCount > 60 && !hasQuestion && history.length > 1) {
@@ -309,7 +309,7 @@ function checkSelfIntroduction(userText: string, history: Turn[]): string | unde
   );
   
   if (!userIntroduced && history.length >= 1) {
-    return "Jordan introduced themselves — sharing your name back is a natural way to connect. Try 'I'm [name]' or weave it in naturally.";
+    return "Tip: Jordan shared their name — dropping yours in ('I'm [name]') is an easy way to make the chat feel more personal.";
   }
   
   return undefined;
@@ -345,7 +345,7 @@ function checkActiveListening(userText: string, history: Turn[]): string | undef
   // User jumped straight to a question without acknowledging
   const wordCount = userText.trim().split(/\s+/).length;
   if (wordCount < 10) { // Short question with no acknowledgment
-    return "Try acknowledging what Jordan said before asking your question — 'Oh cool!' or 'Nice!' makes the conversation feel warmer.";
+    return "Tip: a quick 'oh cool!' or 'nice!' before your question can make the conversation feel warmer.";
   }
   
   return undefined;
@@ -375,7 +375,7 @@ function checkBuildOnShare(userText: string, history: Turn[]): string | undefine
   const hasQuestion = /\?/.test(userText);
   
   if ((isMinimalResponse || wordCount <= 3) && !hasQuestion) {
-    return "Jordan shared something about themselves — try asking a follow-up like 'How'd you get into that?' to show you're interested.";
+    return "Tip: Jordan just shared something — a follow-up like 'how'd you get into that?' keeps the convo going.";
   }
   
   return undefined;
@@ -433,7 +433,7 @@ function checkRepeatedQuestion(userText: string, history: Turn[]): string | unde
     });
     
     if (alreadyAnswered) {
-      return "Jordan already mentioned this — asking again can seem like you weren't listening. Try building on what they said instead.";
+      return "Tip: Jordan touched on this earlier — try building on what they said, like 'you mentioned X — tell me more about that!'";
     }
   }
   
@@ -473,9 +473,9 @@ function checkExitCues(userText: string, history: Turn[], jordanEnded: boolean):
   
   if (exitCueFound && !userWindingDown) {
     if (exitType === "leaving" || exitType === "farewell") {
-      return "Jordan is signaling they're wrapping up — a friendly 'Nice talking to you!' or 'Take care!' is a natural way to close.";
+      return "Tip: sounds like Jordan's wrapping up — a friendly 'nice talking to you!' or 'take care!' lands well here.";
     } else {
-      return "Jordan's tone is shifting toward an exit. Acknowledge it or start your own goodbye to wrap up gracefully.";
+      return "Tip: Jordan's winding down — matching their energy with a casual goodbye wraps things up nicely.";
     }
   }
   
