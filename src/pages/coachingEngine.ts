@@ -151,21 +151,18 @@ export function generateCoachTip(context: CoachingContext): string | undefined {
   if (history.length >= 2) {
     const lastJordan = history[history.length - 1];
     if (lastJordan?.role === "assistant" && /\?/.test(lastJordan.content)) {
-      // Jordan just asked a question - check if user is answering it
-      const questionWords = lastJordan.content.toLowerCase().match(/\b(what|where|how|why|which|who|when|do you|are you|have you)\b/g);
-      const userLower = userText.toLowerCase();
-      
       // Check if user is clearly changing topic (greeting only or unrelated)
       if (isGreetingOnly) {
-        return "Jordan just asked you something — try answering before greeting again.";
+        return "Jordan asked you something — that's a great chance to share a bit about yourself.";
       }
       
-      // Check if user is asking a new question instead of answering
-      if (hasQuestion && wordCount < 15) {
-        const isDeflecting = !questionWords?.some(qw => userLower.includes(qw));
-        if (isDeflecting) {
-          return "You asked a question without answering Jordan's first. Answering first shows you're listening — it builds trust.";
-        }
+      // Only flag if user's response is PURELY a question with no answer content
+      // Look for answer indicators: first-person statements, substantive content
+      const hasAnswerContent = /\b(i|i'm|i've|my|me|mine|i'd|i'll|yeah|yes|no|nope|definitely|absolutely|sure|totally)\b/i.test(userText);
+      const isPurelyQuestion = hasQuestion && wordCount < 6 && !hasAnswerContent;
+      
+      if (isPurelyQuestion) {
+        return "Tip: answering Jordan's question before asking yours helps the conversation feel balanced.";
       }
     }
   }
