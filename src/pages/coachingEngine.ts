@@ -41,6 +41,22 @@ interface CoachingContext {
   celebratedBehaviors?: CelebratedBehaviors;
 }
 
+export interface CoachChatMessage {
+  content: string;
+  type: "celebration" | "insight";
+}
+
+/**
+ * Jordan Behavior Insights
+ * Explain WHY Jordan does certain things to help users understand social dynamics
+ */
+const JORDAN_BEHAVIOR_INSIGHTS: Record<string, string> = {
+  closing: "Jordan is starting to wrap up — in real life, people often signal they need to go before actually leaving. It's a polite way to give you a chance to say goodbye.",
+  askingQuestion: "Notice how Jordan asked a question? That's a common way to show interest and keep conversations balanced.",
+  sharingPersonal: "Jordan shared something personal — this is an invitation for you to share too. It builds connection.",
+  changingTopic: "Jordan shifted topics — this often happens naturally in conversations when one thread runs its course.",
+};
+
 /**
  * Distress Detection Helper
  * Returns distress level: 0 = none, 1 = low, 2 = high
@@ -194,7 +210,37 @@ function generatePositiveReinforcement(
   return undefined;
 }
 
-export function generateCoachTip(context: CoachingContext): { tip?: string; celebratedBehavior?: keyof CelebratedBehaviors } {
+/**
+ * Detect Jordan's behavior and generate insight messages for the chat
+ */
+export function detectJordanBehavior(history: Turn[]): CoachChatMessage | undefined {
+  if (history.length < 2) return undefined;
+  
+  const lastJordan = history[history.length - 1];
+  if (lastJordan?.role !== "assistant") return undefined;
+  
+  const jordanContent = lastJordan.content;
+  
+  // Check if Jordan is closing/winding down
+  const closingPatterns = [
+    /\b(should (get going|head out|take off|grab|run)|gotta (go|run|get going))/i,
+    /\b(take care|see you|good luck|catch you later|have a good|nice talking|good chatting)/i,
+    /\b(let you (get back|go)|I'll let you)/i
+  ];
+  
+  const isClosing = closingPatterns.some(p => p.test(jordanContent)) && !/\?/.test(jordanContent);
+  if (isClosing) {
+    return { content: JORDAN_BEHAVIOR_INSIGHTS.closing, type: "insight" };
+  }
+  
+  return undefined;
+}
+
+export function generateCoachTip(context: CoachingContext): { 
+  tip?: string; 
+  celebratedBehavior?: keyof CelebratedBehaviors;
+  chatMessage?: CoachChatMessage;
+} {
   const { userText, history, triggerKind, cooldown, jordanEndedConversation } = context;
   
   // Cooldown from previous tip
@@ -229,10 +275,13 @@ export function generateCoachTip(context: CoachingContext): { tip?: string; cele
   }
   
   // *** POSITIVE REINFORCEMENT: Check for first-time positive behaviors ***
-  // This runs before corrective tips so we celebrate good behavior
+  // These appear as chat messages (celebrations), not as tips
   const positiveReinforcement = generatePositiveReinforcement(context);
   if (positiveReinforcement) {
-    return { tip: positiveReinforcement.tip, celebratedBehavior: positiveReinforcement.behaviorKey };
+    return { 
+      celebratedBehavior: positiveReinforcement.behaviorKey,
+      chatMessage: { content: positiveReinforcement.tip, type: "celebration" }
+    };
   }
   
   const wordCount = userText.trim().split(/\s+/).length;

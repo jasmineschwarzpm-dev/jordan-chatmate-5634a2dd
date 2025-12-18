@@ -3,7 +3,7 @@ import { DEFAULTS, type Scene } from "./constants";
 import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse, analyzeDistress, countTier2SignalsInHistory } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
-import { generateCoachTip, type CelebratedBehaviors } from "./coachingEngine";
+import { generateCoachTip, detectJordanBehavior, type CelebratedBehaviors, type CoachChatMessage } from "./coachingEngine";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Send, RotateCcw, X } from "lucide-react";
 import { MessageBubble } from "@/components/MessageBubble";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { CoachTip } from "@/components/CoachTip";
+import { CoachMessage } from "@/components/CoachMessage";
 import { SessionSummary } from "@/components/SessionSummary";
 import { SetupDialog } from "@/components/SetupDialog";
 import { CrisisModal } from "@/components/CrisisModal";
@@ -19,7 +20,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // --- Types ---
-interface Turn { role: "user"|"assistant"; content: string; coachTip?: string }
+interface Turn { 
+  role: "user" | "assistant" | "coach"; 
+  content: string; 
+  coachTip?: string;
+  coachType?: "celebration" | "insight";
+}
 interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"; ageConfirmed: boolean }
 
 type Adapter = "lovable"|"openai"|"mock";
@@ -243,8 +249,9 @@ export default function App() {
     const triggers = detectTriggers(userText);
     const main = prioritize(triggers);
     
-    // Initialize coachTip early (may be set by crisis analysis)
+    // Initialize coach feedback variables (may be set by crisis analysis or coaching engine)
     let coachTip: string | undefined;
+    let coachChatMessage: CoachChatMessage | undefined;
 
     // 2) Three-tiered distress analysis (Manus Research Implementation)
     const tier2Count = countTier2SignalsInHistory(history);
@@ -348,9 +355,12 @@ export default function App() {
         !/\?/.test(h.content)
       );
       
+      // Filter out coach messages for coaching engine
+      const conversationHistory = history.filter(h => h.role !== "coach") as { role: "user" | "assistant"; content: string; coachTip?: string }[];
+      
       const coachResult = generateCoachTip({
         userText,
-        history,
+        history: conversationHistory,
         triggerKind: main.kind,
         cooldown,
         jordanEndedConversation,
@@ -358,6 +368,7 @@ export default function App() {
       });
       
       coachTip = coachResult.tip;
+      coachChatMessage = coachResult.chatMessage;
       
       // Update celebrated behaviors if a positive behavior was recognized
       if (coachResult.celebratedBehavior) {
@@ -370,11 +381,18 @@ export default function App() {
 
     // 4) Add user message immediately (show it before Jordan responds)
     setHistory(h => [...h, { role: "user", content: userText, coachTip }]);
+    
+    // 4b) Add coach chat message if celebrating a positive behavior
+    if (coachChatMessage) {
+      setHistory(h => [...h, { role: "coach", content: coachChatMessage!.content, coachType: coachChatMessage!.type }]);
+    }
 
     // 5) Build messages for LLM (pass exchange count for phase awareness)
-    const exchangeCount = history.length;
+    // Filter out coach messages for LLM
+    const conversationOnly = history.filter(h => h.role !== "coach");
+    const exchangeCount = conversationOnly.length;
     const sys = buildSystemPrompt(setup.scene, setup.interlocutor, exchangeCount);
-    const chatHistory = [...history, { role: "user" as const, content: userText }].map(t => ({ role: t.role, content: t.content }));
+    const chatHistory = [...conversationOnly, { role: "user" as const, content: userText }].map(t => ({ role: t.role as "user" | "assistant", content: t.content }));
     const messages: ChatMessage[] = makeMessages(sys, chatHistory);
 
     // 6) Call adapter
@@ -402,9 +420,21 @@ export default function App() {
     }
 
     // 8) Add Jordan's response separately (user message already visible)
-    setHistory(h => [...h, { role: "assistant", content: reply }]);
+    setHistory(h => {
+      const newHistory = [...h, { role: "assistant" as const, content: reply }];
+      
+      // 8b) Check if Jordan is exhibiting a behavior worth explaining
+      const conversationOnly = newHistory.filter(t => t.role !== "coach") as { role: "user" | "assistant"; content: string; coachTip?: string }[];
+      const jordanInsight = detectJordanBehavior(conversationOnly);
+      
+      if (jordanInsight) {
+        return [...newHistory, { role: "coach" as const, content: jordanInsight.content, coachType: jordanInsight.type }];
+      }
+      
+      return newHistory;
+    });
     setBusy(false);
-    setCooldown(!!coachTip);
+    setCooldown(!!coachTip || !!coachChatMessage);
   }
 
   async function endSession() {
@@ -539,12 +569,21 @@ export default function App() {
           <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-0">
             {history.map((t, i) => {
               const previousTurn = i > 0 ? history[i - 1] : null;
-              const isGrouped = previousTurn?.role === t.role;
+              const isGrouped = previousTurn?.role === t.role && t.role !== "coach";
+              
+              // Render coach messages differently
+              if (t.role === "coach") {
+                return (
+                  <div key={i} className="animate-slide-in">
+                    <CoachMessage content={t.content} type={t.coachType || "insight"} />
+                  </div>
+                );
+              }
               
               return (
                 <div key={i} className="animate-slide-in">
                   <MessageBubble 
-                    role={t.role} 
+                    role={t.role as "user" | "assistant"} 
                     content={t.content}
                     isGrouped={isGrouped}
                   />
