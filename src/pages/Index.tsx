@@ -3,7 +3,7 @@ import { DEFAULTS, type Scene } from "./constants";
 import { detectTriggers, prioritize, shouldTerminateSession, moderateJordanResponse, analyzeDistress, countTier2SignalsInHistory } from "./guardrails";
 import { lovableChat, openaiChat, mockChat, type ChatMessage } from "./llmAdapters";
 import { buildSystemPrompt, makeMessages, chatOpts } from "./JordanEngine";
-import { generateCoachTip } from "./coachingEngine";
+import { generateCoachTip, type CelebratedBehaviors } from "./coachingEngine";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,13 @@ export default function App() {
   const [pauseWarning, setPauseWarning] = useState(false);
   const [lastResponseTime, setLastResponseTime] = useState<number | null>(null);
   const [showCrisisModal, setShowCrisisModal] = useState(false);
+  const [celebratedBehaviors, setCelebratedBehaviors] = useState<CelebratedBehaviors>({
+    askedFirstQuestion: false,
+    sharedPersonally: false,
+    activeListening: false,
+    gracefulClose: false,
+    followedSuggestion: false,
+  });
 
   // Session logging state
   const [sessionId, setSessionId] = useState<string>("");
@@ -128,6 +135,13 @@ export default function App() {
     setSessionToken("");
     setShowSetup(true);
     setShowCrisisModal(false);
+    setCelebratedBehaviors({
+      askedFirstQuestion: false,
+      sharedPersonally: false,
+      activeListening: false,
+      gracefulClose: false,
+      followedSuggestion: false,
+    });
     localStorage.removeItem("jordan-conversation");
     localStorage.removeItem("jordan-session-token");
   }
@@ -334,13 +348,24 @@ export default function App() {
         !/\?/.test(h.content)
       );
       
-      coachTip = generateCoachTip({
+      const coachResult = generateCoachTip({
         userText,
         history,
         triggerKind: main.kind,
         cooldown,
-        jordanEndedConversation
+        jordanEndedConversation,
+        celebratedBehaviors
       });
+      
+      coachTip = coachResult.tip;
+      
+      // Update celebrated behaviors if a positive behavior was recognized
+      if (coachResult.celebratedBehavior) {
+        setCelebratedBehaviors(prev => ({
+          ...prev,
+          [coachResult.celebratedBehavior!]: true
+        }));
+      }
     }
 
     // 4) Add user message immediately (show it before Jordan responds)
