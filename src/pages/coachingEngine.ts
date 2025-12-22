@@ -30,6 +30,7 @@ export interface CelebratedBehaviors {
   activeListening: boolean;
   gracefulClose: boolean;
   followedSuggestion: boolean;
+  foundCommonGround: boolean;
 }
 
 interface CoachingContext {
@@ -184,6 +185,52 @@ function generatePositiveReinforcement(
         tip: "Smooth close — ending warmly leaves a good impression.",
         behaviorKey: "gracefulClose"
       };
+    }
+  }
+  
+  // 5. User finds common ground with Jordan (shares similar interest/experience)
+  if (!celebratedBehaviors.foundCommonGround && history.length >= 2) {
+    const lastJordan = history[history.length - 1];
+    if (lastJordan?.role === "assistant") {
+      const jordanLower = lastJordan.content.toLowerCase();
+      
+      // Detect Jordan sharing interests/preferences
+      const jordanInterestPatterns = [
+        /\b(i (love|like|enjoy|watch|read|play|listen to)|i'm (into|a fan of)|my favorite)\s+(\w+)/i,
+        /\b(i've been (watching|reading|playing|listening to))\s+(\w+)/i,
+        /\b(big fan of|really into|obsessed with)\s+(\w+)/i
+      ];
+      
+      let jordanMentionedInterest: string | null = null;
+      for (const pattern of jordanInterestPatterns) {
+        const match = jordanLower.match(pattern);
+        if (match) {
+          jordanMentionedInterest = match[0];
+          break;
+        }
+      }
+      
+      if (jordanMentionedInterest) {
+        // Check if user responds with similar interest patterns
+        const userShowsCommonGround = [
+          /\b(me too|same (here)?|i (also|love|like) that|i'm (also )?into)\b/i,
+          /\b(oh (yeah|nice|cool)?.{0,20}i (love|like|watch|read|play))\b/i,
+          /\b(have you (seen|read|tried|heard)|what('s| is) your favorite)\b/i,
+          /\b(i (just )?(saw|watched|read|finished|started))\b/i
+        ].some(pattern => pattern.test(userText));
+        
+        // Also check for topic echoing (user mentions same topic area)
+        const interestKeywords = ["movie", "book", "game", "show", "music", "band", "series", "podcast", "anime", "manga", "sci-fi", "horror", "comedy", "fantasy"];
+        const jordanMentionedTopic = interestKeywords.find(kw => jordanLower.includes(kw));
+        const userEchoesTopic = jordanMentionedTopic && userText.toLowerCase().includes(jordanMentionedTopic);
+        
+        if (userShowsCommonGround || userEchoesTopic) {
+          return {
+            tip: "Finding common ground — that's one of the fastest ways to build connection with someone new.",
+            behaviorKey: "foundCommonGround"
+          };
+        }
+      }
     }
   }
   

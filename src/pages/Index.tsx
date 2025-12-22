@@ -54,6 +54,7 @@ export default function App() {
     activeListening: false,
     gracefulClose: false,
     followedSuggestion: false,
+    foundCommonGround: false,
   });
 
   // Session logging state
@@ -147,6 +148,7 @@ export default function App() {
       activeListening: false,
       gracefulClose: false,
       followedSuggestion: false,
+      foundCommonGround: false,
     });
     localStorage.removeItem("jordan-conversation");
     localStorage.removeItem("jordan-session-token");
