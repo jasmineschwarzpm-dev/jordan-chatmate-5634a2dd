@@ -394,8 +394,20 @@ export default function App() {
     const conversationOnly = history.filter(h => h.role !== "coach");
     const exchangeCount = conversationOnly.length;
     const sys = buildSystemPrompt(setup.scene, setup.interlocutor, exchangeCount);
-    const chatHistory = [...conversationOnly, { role: "user" as const, content: userText }].map(t => ({ role: t.role as "user" | "assistant", content: t.content }));
-    const messages: ChatMessage[] = makeMessages(sys, chatHistory);
+
+    const chatHistory = conversationOnly.map(t => ({
+      role: t.role as "user" | "assistant",
+      content: t.content,
+    }));
+
+    const turnReminder = `IMPORTANT: Reply only to the learner's latest message. Do NOT repeat your introduction or name, and do NOT respond to your own previous messages (including your opening line). Start by acknowledging the learner's content.`;
+
+    const messages: ChatMessage[] = [
+      { role: "system", content: sys },
+      ...chatHistory,
+      { role: "system", content: turnReminder },
+      { role: "user", content: userText },
+    ];
 
     // 6) Call adapter
     let reply = "";
