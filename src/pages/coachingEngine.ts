@@ -434,13 +434,26 @@ export function generateCoachTip(context: CoachingContext): {
     }
   }
   
-  // Interview mode - user asking too many questions without sharing
+  // Interview mode - user asking 3+ questions without sharing about themselves or responding to Jordan
   if (userMessages.length >= 3) {
     const lastThreeQuestions = lastThreeUserMsgs.filter(msg => /\?/.test(msg.content));
     if (lastThreeQuestions.length >= 3) {
-      const hasSharedRecently = lastThreeUserMsgs.some(msg => msg.content.trim().split(/\s+/).length > 15);
-      if (!hasSharedRecently) {
-        return { tip: "Nice — you're curious! Mixing in something about yourself can make it feel more like a two-way chat." };
+      // Check if user has shared about themselves (I statements with substance)
+      const hasSharedAboutSelf = lastThreeUserMsgs.some(msg => {
+        const hasIStatement = /\b(i|i'm|i've|my|i'd|i'll)\s+\w+/i.test(msg.content);
+        const wordCount = msg.content.trim().split(/\s+/).length;
+        return hasIStatement && wordCount >= 6;
+      });
+      
+      // Check if user has acknowledged/responded to what Jordan said
+      const hasAcknowledged = lastThreeUserMsgs.some(msg => {
+        const msgLower = msg.content.toLowerCase();
+        return ACKNOWLEDGMENT_WORDS.some(w => msgLower.includes(w)) ||
+          /\b(that's|that is|sounds|seems|wow|oh|nice|cool|interesting|awesome)\b/i.test(msg.content);
+      });
+      
+      if (!hasSharedAboutSelf && !hasAcknowledged) {
+        return { tip: "Asking questions is great — you'll also want to break it up by sharing about yourself or responding to what they said, so it doesn't feel like an interview." };
       }
     }
   }
