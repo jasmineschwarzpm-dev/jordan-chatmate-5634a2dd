@@ -410,11 +410,50 @@ export default function App() {
     ];
 
     // 6) Call adapter
+    const callAdapter = async (msgs: ChatMessage[]) => {
+      if (adapter === "lovable") {
+        return await lovableChat(
+          msgs,
+          chatOpts({ useAdapter: "lovable", scene: setup.scene, interlocutor: setup.interlocutor } as any)
+        );
+      }
+      if (adapter === "openai") {
+        return await openaiChat(
+          msgs,
+          chatOpts({ useAdapter: "openai", scene: setup.scene, interlocutor: setup.interlocutor } as any)
+        );
+      }
+      return await mockChat(msgs);
+    };
+
+    const needsSelfResponseRetry = (text: string) => {
+      const t = text.toLowerCase();
+      return (
+        t.includes("i'm jordan too") ||
+        t.includes("im jordan too") ||
+        t.includes("it's jordan for me too") ||
+        t.includes("its jordan for me too") ||
+        t.includes("actually jordan for me too") ||
+        t.includes("jordan for me too")
+      );
+    };
+
     let reply = "";
     try {
-      if (adapter === "lovable") reply = await lovableChat(messages, chatOpts({ useAdapter: "lovable", scene: setup.scene, interlocutor: setup.interlocutor } as any));
-      else if (adapter === "openai") reply = await openaiChat(messages, chatOpts({ useAdapter: "openai", scene: setup.scene, interlocutor: setup.interlocutor } as any));
-      else reply = await mockChat(messages);
+      reply = await callAdapter(messages);
+
+      // Targeted one-time retry if Jordan misreads "Hi Jordan" as the learner's name.
+      if (needsSelfResponseRetry(reply)) {
+        const fixSystem = `CRITICAL FIX: The learner greeting you as "Hi Jordan" is NOT them sharing their name. Do NOT say “I’m Jordan too” / “Jordan for me too.” Do NOT respond to your own opening line. Respond ONLY to the learner message: "${userText}".`;
+
+        const retryMessages: ChatMessage[] = [
+          ...messages.slice(0, -1),
+          { role: "system", content: fixSystem },
+          messages[messages.length - 1],
+        ];
+
+        reply = await callAdapter(retryMessages);
+      }
     } catch (e:any) {
       toast({
         title: "Connection issue",
