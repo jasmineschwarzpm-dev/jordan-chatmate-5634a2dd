@@ -400,7 +400,7 @@ export default function App() {
       content: t.content,
     }));
 
-    const turnReminder = `IMPORTANT: Reply only to the learner's latest message. Do NOT repeat your introduction or name, and do NOT respond to your own previous messages (including your opening line). Start by acknowledging the learner's content.`;
+    const turnReminder = `IMPORTANT: Reply only to the learner's latest message. Stay in-role as Jordan (do NOT write as the learner). Do NOT repeat your introduction or name, and do NOT respond to your own previous messages (including your opening line). Do NOT address the learner as “Jordan” or any other name unless they explicitly shared it. Start by acknowledging the learner's content.`;
 
     const messages: ChatMessage[] = [
       { role: "system", content: sys },
@@ -427,14 +427,13 @@ export default function App() {
     };
 
     const needsSelfResponseRetry = (text: string) => {
-      const t = text.toLowerCase();
+      const t = text.toLowerCase().trim();
       return (
-        t.includes("i'm jordan too") ||
-        t.includes("im jordan too") ||
-        t.includes("it's jordan for me too") ||
-        t.includes("its jordan for me too") ||
-        t.includes("actually jordan for me too") ||
-        t.includes("jordan for me too")
+        /\b(i['’]?m|im)\s+jordan\s+too\b/.test(t) ||
+        /\bjordan\s+for\s+me\s+too\b/.test(t) ||
+        /^(hey|hi|hello)\s+jordan\b/.test(t) ||
+        /\b(nice|great|good)\s+to\s+meet\s+you[,! ]+jordan\b/.test(t) ||
+        /\bit['’]?s\s+great\s+to\s+meet\s+you[,! ]+jordan\b/.test(t)
       );
     };
 
@@ -442,9 +441,9 @@ export default function App() {
     try {
       reply = await callAdapter(messages);
 
-      // Targeted one-time retry if Jordan misreads "Hi Jordan" as the learner's name.
+      // Targeted one-time retry if Jordan role-flips or incorrectly addresses the learner as “Jordan”.
       if (needsSelfResponseRetry(reply)) {
-        const fixSystem = `CRITICAL FIX: The learner greeting you as "Hi Jordan" is NOT them sharing their name. Do NOT say “I’m Jordan too” / “Jordan for me too.” Do NOT respond to your own opening line. Respond ONLY to the learner message: "${userText}".`;
+        const fixSystem = `CRITICAL FIX: You are Jordan. The learner did NOT provide their name. Never address the learner as “Jordan” or any name (avoid name greetings like “Hey Jordan” / “Nice to meet you, Jordan”). Do NOT respond to your own opening line. Respond ONLY to the learner message: "${userText}".`;
 
         const retryMessages: ChatMessage[] = [
           ...messages.slice(0, -1),
