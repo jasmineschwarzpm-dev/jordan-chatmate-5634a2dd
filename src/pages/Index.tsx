@@ -511,15 +511,21 @@ export default function App() {
     setShowSetup(false);
     
     const dbId = await createSession();
+    // Add scene context first, then Jordan's opening line
+    const initialHistory: Turn[] = [
+      { role: "coach", content: sceneContext(setupData.scene), coachType: "insight" },
+      { role: "assistant", content: openingLine(setupData.scene) }
+    ];
+    
     if (dbId) {
-      setHistory([{ role: "assistant", content: openingLine(setupData.scene) }]);
+      setHistory(initialHistory);
     } else {
       toast({
         title: "Session creation failed",
         description: "Could not create session. Continuing without logging.",
         variant: "destructive",
       });
-      setHistory([{ role: "assistant", content: openingLine(setupData.scene) }]);
+      setHistory(initialHistory);
     }
   }
 
@@ -744,6 +750,19 @@ export default function App() {
 }
 
 // --- Helpers ---
+function sceneContext(scene: Scene): string {
+  switch(scene) {
+    case "bookstore": 
+      return "You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. He is wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.";
+    case "coffee": 
+      return "You are in line at a busy campus coffee shop. The aroma of fresh espresso fills the air and students are chatting at tables nearby. You notice Jordan standing in line ahead of you.";
+    case "campus": 
+      return "You are at a campus orientation event. There are booths set up with club information and students mingling around. Jordan is standing nearby, looking at one of the booths.";
+    default:
+      return "You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. He is wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.";
+  }
+}
+
 function openingLine(scene: Scene) {
   switch(scene){
     case "coffee": return "Hey! I'm Jordan. This line moves pretty fast here. What do you usually order?";
