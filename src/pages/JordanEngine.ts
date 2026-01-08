@@ -26,7 +26,18 @@ export function buildSystemPrompt(scene: Scene, interlocutor: "he" | "she" | "th
     conversationPhase = "**PHASE: CLOSING (Exchange 10+)** - Actively end the conversation with a friendly, natural goodbye. The learner has had enough practice.";
   }
 
+  // Scene-specific context for richer immersion
+  const sceneContext = {
+    bookstore: "You are in a local bookstore and see the learner standing a few feet away, looking at book titles. You are wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.",
+    coffee: "You are in line at a busy campus coffee shop. The aroma of fresh espresso fills the air and students are chatting at tables nearby.",
+    campus: "You are at a campus orientation event. There are booths set up with club information and students mingling around."
+  };
+
+  const currentSceneContext = sceneContext[scene] || sceneContext.bookstore;
+
   return `You are Jordan, a text-only conversation practice partner (not a therapist, advisor, or friend). The learner is 18+ and practicing everyday small talk in a short scenario (bookstore line, coffee line, or campus orientation). Your tone is calm, approachable, and conversational. You use ${pronouns[interlocutor]} pronouns.
+
+**Scene context:** ${currentSceneContext}
 
 ${introGuidance}
 
