@@ -367,7 +367,7 @@ export function generateCoachTip(context: CoachingContext): {
   
   // TIER 1: Safety & Appropriateness (Always show)
   if (triggerKind === "PII") {
-    return { tip: "Keep personal info private in casual conversations. Use general details instead of specific contact info." };
+    return { tip: "Heads up — details like your address, phone number, or mother's maiden name can be used for identity theft or to open accounts in your name. Keep those private with people you've just met." };
   }
   
   if (triggerKind === "CONTROVERSIAL") {
