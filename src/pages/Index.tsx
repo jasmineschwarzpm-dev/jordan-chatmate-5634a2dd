@@ -25,6 +25,7 @@ interface Turn {
   content: string; 
   coachTip?: string;
   coachType?: "celebration" | "insight";
+  isSceneContext?: boolean;
 }
 interface Setup { scene: Scene; interlocutor: "he"|"she"|"they"; ageConfirmed: boolean }
 
@@ -513,7 +514,7 @@ export default function App() {
     const dbId = await createSession();
     // Add scene context first, then Jordan's opening line
     const initialHistory: Turn[] = [
-      { role: "coach", content: sceneContext(setupData.scene, setupData.interlocutor), coachType: "insight" },
+      { role: "coach", content: sceneContext(setupData.scene, setupData.interlocutor), coachType: "insight", isSceneContext: true },
       { role: "assistant", content: openingLine(setupData.scene) }
     ];
     
@@ -633,7 +634,7 @@ export default function App() {
               if (t.role === "coach") {
                 return (
                   <div key={i} className="animate-slide-in">
-                    <CoachMessage content={t.content} type={t.coachType || "insight"} />
+                    <CoachMessage content={t.content} type={t.coachType || "insight"} isSceneContext={t.isSceneContext} />
                   </div>
                 );
               }
