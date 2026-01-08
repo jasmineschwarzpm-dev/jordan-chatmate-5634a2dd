@@ -56,6 +56,7 @@ export default function App() {
     gracefulClose: false,
     followedSuggestion: false,
     foundCommonGround: false,
+    usedContextClues: false,
   });
 
   // Session logging state
@@ -150,6 +151,7 @@ export default function App() {
       gracefulClose: false,
       followedSuggestion: false,
       foundCommonGround: false,
+      usedContextClues: false,
     });
     localStorage.removeItem("jordan-conversation");
     localStorage.removeItem("jordan-session-token");
@@ -664,7 +666,7 @@ export default function App() {
             {pauseWarning && !busy && !ended && (
               <div className="mt-5">
                 <CoachTip 
-                  content="Taking your time to think is great! In real conversations, a brief pause is natural, but if you're stuck, try commenting on something around you or asking an open question like 'What brings you here today?'" 
+                  content="Feeling stuck? Try using context clues! Look at what Jordan is wearing or carrying — like a band shirt or sports logo — those are great conversation starters." 
                 />
               </div>
             )}

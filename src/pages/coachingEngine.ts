@@ -31,6 +31,7 @@ export interface CelebratedBehaviors {
   gracefulClose: boolean;
   followedSuggestion: boolean;
   foundCommonGround: boolean;
+  usedContextClues: boolean;
 }
 
 interface CoachingContext {
@@ -234,7 +235,32 @@ function generatePositiveReinforcement(
     }
   }
   
-  // 5. User followed a coach suggestion (check if previous tip was acted on)
+  // 6. User uses context clues from the scene (Nirvana, Broncos, sports, music, 90s culture)
+  if (!celebratedBehaviors.usedContextClues) {
+    const contextCluePatterns = [
+      // Nirvana / music / band references
+      /\b(nirvana|band|music|shirt|t-shirt|tee)\b/i,
+      /\b(grunge|90s|nineties|kurt cobain|rock|alternative)\b/i,
+      /\b(concert|tour|album|song|listen|favorite band)\b/i,
+      // Broncos / sports / football references
+      /\b(broncos|denver|football|nfl|sports|tumbler|mug|cup)\b/i,
+      /\b(game|season|playoffs|team|fan|watch the game)\b/i,
+      // General context clue usage patterns
+      /\b(i (noticed|saw|see|like) (your|the|that))\b/i,
+      /\b(cool|nice|awesome|love) (shirt|tumbler|cup|logo)\b/i,
+    ];
+    
+    const usedContextClue = contextCluePatterns.some(pattern => pattern.test(userText));
+    
+    if (usedContextClue) {
+      return {
+        tip: "Great job using context clues to figure out a good conversation topic!",
+        behaviorKey: "usedContextClues"
+      };
+    }
+  }
+  
+  // 7. User followed a coach suggestion (check if previous tip was acted on)
   if (!celebratedBehaviors.followedSuggestion && history.length >= 2) {
     const recentTips = history.slice(-3).filter(h => h.coachTip);
     if (recentTips.length > 0) {
