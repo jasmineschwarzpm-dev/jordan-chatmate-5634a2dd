@@ -513,7 +513,7 @@ export default function App() {
     const dbId = await createSession();
     // Add scene context first, then Jordan's opening line
     const initialHistory: Turn[] = [
-      { role: "coach", content: sceneContext(setupData.scene), coachType: "insight" },
+      { role: "coach", content: sceneContext(setupData.scene, setupData.interlocutor), coachType: "insight" },
       { role: "assistant", content: openingLine(setupData.scene) }
     ];
     
@@ -750,16 +750,20 @@ export default function App() {
 }
 
 // --- Helpers ---
-function sceneContext(scene: Scene): string {
+function sceneContext(scene: Scene, interlocutor: "he" | "she" | "they"): string {
+  const pronoun = interlocutor === "he" ? "He" : interlocutor === "she" ? "She" : "They";
+  const pronounLower = interlocutor === "he" ? "him" : interlocutor === "she" ? "her" : "them";
+  const verb = interlocutor === "they" ? "are" : "is";
+  
   switch(scene) {
     case "bookstore": 
-      return "You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. He is wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.";
+      return `You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. ${pronoun} ${verb} wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.`;
     case "coffee": 
-      return "You are in line at a busy campus coffee shop. The aroma of fresh espresso fills the air and students are chatting at tables nearby. You notice Jordan standing in line ahead of you.";
+      return `You are in line at a busy campus coffee shop. The aroma of fresh espresso fills the air and students are chatting at tables nearby. You notice Jordan standing in line ahead of you.`;
     case "campus": 
-      return "You are at a campus orientation event. There are booths set up with club information and students mingling around. Jordan is standing nearby, looking at one of the booths.";
+      return `You are at a campus orientation event. There are booths set up with club information and students mingling around. Jordan is standing nearby, looking at one of the booths.`;
     default:
-      return "You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. He is wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.";
+      return `You are in a local bookstore and see Jordan standing a few feet away, looking at book titles. ${pronoun} ${verb} wearing a Nirvana band shirt and carrying a coffee tumbler with the Denver Broncos football logo.`;
   }
 }
 
