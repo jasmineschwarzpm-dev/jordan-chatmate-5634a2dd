@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   CRISIS_KEYWORDS, TIER_1_CRISIS_KEYWORDS, TIER_2_DISTRESS_KEYWORDS,
   CONTROVERSIAL_KEYWORDS, INSULT_KEYWORDS,
-  EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE,
+  EMAIL_RE, PHONE_RE, SSN_RE, ADDRESS_RE, STREET_SHARE_RE,
   SEVERITY_ORDER, type Severity, type DistressSeverity
 } from "./constants";
 
@@ -92,7 +92,7 @@ export function detectTriggers(text: string): Trigger[] {
   // Crisis
   if (CRISIS_KEYWORDS.some(k => t.includes(k))) hits.push({ kind: "CRISIS", reason: "crisis" });
   // PII
-  if (EMAIL_RE.test(text) || PHONE_RE.test(text) || SSN_RE.test(text) || ADDRESS_RE.test(text)) {
+  if (EMAIL_RE.test(text) || PHONE_RE.test(text) || SSN_RE.test(text) || ADDRESS_RE.test(text) || STREET_SHARE_RE.test(text)) {
     hits.push({ kind: "PII", reason: "pii" });
   }
   // Controversial

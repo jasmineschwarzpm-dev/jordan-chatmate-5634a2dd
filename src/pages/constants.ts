@@ -59,6 +59,8 @@ export const EMAIL_RE = /\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/i;
 export const PHONE_RE = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/;
 export const SSN_RE = /\b\d{3}[-.]?\d{2}[-.]?\d{4}\b/;
 export const ADDRESS_RE = /\b\d+\s+[A-Za-z\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|court|ct)\b/i;
+// Detects casual street name sharing like "I live on Main Street" or "grew up on Oak Ave"
+export const STREET_SHARE_RE = /\b(i\s+)?(?:live|lived|stay|staying|grew up|grow up|reside|residing)\s+(?:on|at|off|near)\s+[A-Za-z\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|court|ct|circle|cir|place|pl)\b/i;
 
 export type Severity = "CRISIS" | "PII" | "CONTROVERSIAL" | "INSULT" | "COACHING" | "NONE";
 export const SEVERITY_ORDER: Severity[] = ["CRISIS", "PII", "CONTROVERSIAL", "INSULT", "COACHING", "NONE"];

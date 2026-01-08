@@ -367,7 +367,7 @@ export function generateCoachTip(context: CoachingContext): {
   
   // TIER 1: Safety & Appropriateness (Always show)
   if (triggerKind === "PII") {
-    return { tip: "Heads up — details like your address, phone number, or mother's maiden name can be used for identity theft or to open accounts in your name. Keep those private with people you've just met." };
+    return { tip: "It's best to wait until you know someone better before sharing where you live or other personal details. For safety reasons, keep that info private with people you've just met." };
   }
   
   if (triggerKind === "CONTROVERSIAL") {
