@@ -214,10 +214,10 @@ export default function App() {
       coachTip: h.coachTip || null,
     }));
 
-    // Count triggers
-    const crisisCount = history.filter(h => h.coachTip?.includes("988")).length;
-    const piiCount = history.filter(h => h.coachTip?.includes("contact info")).length;
-    const controversialCount = history.filter(h => h.coachTip?.includes("polarizing")).length;
+    // Count triggers - match actual coach tip text patterns
+    const crisisCount = history.filter(h => h.coachTip?.toLowerCase().includes("heavy") || h.coachTip?.toLowerCase().includes("personal topic")).length;
+    const piiCount = history.filter(h => h.coachTip?.toLowerCase().includes("personal details") || h.coachTip?.toLowerCase().includes("where you live")).length;
+    const controversialCount = history.filter(h => h.coachTip?.toLowerCase().includes("politics") || h.coachTip?.toLowerCase().includes("religion")).length;
     const coachingCount = history.filter(h => h.coachTip).length;
 
     const userMessages = history.filter(h => h.role === "user");
@@ -308,10 +308,9 @@ export default function App() {
         
         console.log("Crisis analysis result:", analysis);
         
-        // Add user message to history
-        setHistory(h => [...h, { role: "user", content: userText }]);
-        
         if (analysis.severity === "crisis") {
+          // Add user message to history before showing modal
+          setHistory(h => [...h, { role: "user", content: userText }]);
           // Severe or persistent distress detected - show crisis modal immediately
           // Do NOT add user message to history - modal takes over
           setShowCrisisModal(true);
