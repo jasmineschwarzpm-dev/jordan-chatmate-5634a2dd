@@ -10,12 +10,20 @@ interface CrisisModalProps {
 export function CrisisModal({ onSelection }: CrisisModalProps) {
   const [showZipInput, setShowZipInput] = useState(false);
   const [zip, setZip] = useState("");
+  const [resourcesShown, setResourcesShown] = useState(false);
 
   const handleGetSupport = () => {
     if (showZipInput && zip.trim()) {
+      // User submitted ZIP - show confirmation and allow closing
       onSelection("support_needed", zip.trim());
+      setResourcesShown(true);
+    } else if (resourcesShown) {
+      // User already saw resources, this closes the modal
+      onSelection("restart");
     } else {
+      // First click - show ZIP input option
       setShowZipInput(true);
+      setResourcesShown(true);
     }
   };
 
@@ -95,26 +103,31 @@ export function CrisisModal({ onSelection }: CrisisModalProps) {
             variant="default"
             className="w-full"
           >
-            {showZipInput ? "Submit & Get Local Resources" : "Get Real Support"}
+            {resourcesShown 
+              ? (showZipInput && !zip.trim() ? "Skip ZIP & Close" : "Close & Start Fresh")
+              : "Get Real Support"}
           </Button>
 
-          <div className="flex gap-2">
-            <Button
-              onClick={() => onSelection("false_positive")}
-              variant="outline"
-              className="flex-1 text-xs"
-            >
-              This Was a Mistake
-            </Button>
-            
-            <Button
-              onClick={() => onSelection("restart")}
-              variant="secondary"
-              className="flex-1 text-xs"
-            >
-              I'm Good, Let's Start Over
-            </Button>
-          </div>
+          {!resourcesShown && (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => onSelection("false_positive")}
+                variant="outline"
+                className="flex-1 text-xs"
+              >
+                This Was a Mistake
+              </Button>
+              
+              <Button
+                onClick={() => onSelection("restart")}
+                variant="secondary"
+                className="flex-1 text-xs"
+              >
+                I'm Good, Let's Start Over
+              </Button>
+            </div>
+          )}
+
         </div>
 
         {/* Footer Note */}

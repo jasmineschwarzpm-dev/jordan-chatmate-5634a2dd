@@ -316,22 +316,22 @@ export function generateCoachTip(context: CoachingContext): {
 } {
   const { userText, history, triggerKind, cooldown, jordanEndedConversation } = context;
   
-  // Cooldown from previous tip
-  if (cooldown) return {};
+  // Safety tips (PII, CONTROVERSIAL, CRISIS) ALWAYS bypass cooldown and rate limits
+  const isSafetyTip = triggerKind === "PII" || triggerKind === "CONTROVERSIAL" || triggerKind === "CRISIS";
   
-  // Rate limiting: Don't show more than 3 tips in a session
+  // Cooldown from previous tip (except safety tips)
+  if (cooldown && !isSafetyTip) return {};
+  
+  // Rate limiting: Don't show more than 4 tips in a session (except safety tips)
   const tipCount = history.filter(h => h.coachTip).length;
-  if (tipCount >= 4) {
-    // Only allow safety tips after 4 tips shown
-    if (triggerKind !== "PII" && triggerKind !== "CONTROVERSIAL" && triggerKind !== "CRISIS") {
-      return {};
-    }
+  if (tipCount >= 4 && !isSafetyTip) {
+    return {};
   }
   
   // Spacing: Require at least 2 exchanges between tips (except safety tips)
   const recentHistory = history.slice(-3);
   const recentTipCount = recentHistory.filter(h => h.coachTip).length;
-  if (recentTipCount > 0 && triggerKind !== "PII" && triggerKind !== "CONTROVERSIAL" && triggerKind !== "CRISIS") {
+  if (recentTipCount > 0 && !isSafetyTip) {
     return {};
   }
   
